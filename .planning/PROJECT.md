@@ -19,12 +19,13 @@ Quando o bot assume uma conversa, ele conduz com naturalidade suficiente para ge
 - [ ] **R-001** — Bot assume a conversa somente após o Admin enviar manualmente a primeira mensagem (sem resposta do lead necessária)
 - [ ] **R-017** — Integração com API do sistema de caça-leads (filtros: estado, cidade, região, categoria/nicho, nome-chave) com botão "abordar no WhatsApp"
 - [ ] **R-018** — Sistema usa apenas nome, telefone e endereço retornados pela API; contexto é descoberto na conversa
-- [ ] **R-019** — Tratamento de erro de envio sem quebrar a fila (validação de número é responsabilidade do caça-leads)
+- [ ] **R-019*** — Validação de número via `onWhatsApp()` antes do envio (estado terminal NUMERO_INVALIDO), corrigido pela pesquisa (R-023 refeito: envio a número inexistente pode gerar restrição de conta)
 - [ ] **R-020** — Deduplicação manual: todos os registros mantidos, duplicidades sinalizadas com histórico de tentativas
+- [ ] **R-023*** — Duas travas duras: 20 leads/dia + N contatos novos/dia via `fetchNewChatMessageCap()`; 20–30 mensagens/dia; fila para o próximo dia útil; erro 463 jamais retryado
 - [ ] **R-051** — Qualificação de lead por dois critérios: verba/interesse em investir E capacidade de decisão
 - [ ] **R-052** — Validação híbrida de verba e decisão (indireta por contexto, ou pergunta direta educada)
 - [ ] **R-006** — Janela de envio: dias úteis, 7h–17h; nenhuma mensagem automática fora dela
-- [ ] **R-007** — Follow-up vencido fora da janela é enviado assim que o app abrir
+- [ ] **R-007** — Follow-up vencido fora da janela: dreno limitado e jitterado (misfire `FIRE_ONCE`), enviado assim que o app abrir — nunca em rajada (ADR)
 - [ ] **R-016** — Camada de conexão isolada (interface/adaptador) para permitir troca Baileys/WPPConnect → API oficial sem quebrar histórico, status ou agendamentos
 - [ ] **R-023** — Trava de segurança de 20 leads/dia e 20–30 mensagens/dia, com fila para o próximo dia útil ao atingir
 - [ ] **R-059** — Um único número de WhatsApp dedicado e exclusivo para vendas
@@ -94,7 +95,7 @@ Quando o bot assume uma conversa, ele conduz com naturalidade suficiente para ge
 - **Perfis de usuário, permissões e auditoria multiusuário** (R-029, R-030) — preparando terreno com R-027/R-028, mas fora do MVP
 - **Criptografia adicional dos dados** (R-033) — risco aceito conscientemente, depende do controle de acesso do PC
 - **Aquecimento automático do número** (R-039, R-040) — sistema apenas sugere, Admin controla manualmente
-- **Validação de existência de número de WhatsApp** (R-019) — responsabilidade do sistema de caça-leads
+- **Validação de existência de número de WhatsApp** (remove R-019 do Out of Scope) — **corrigida pela pesquisa**: `onWhatsApp()` volta ao escopo pois envio a número inexistente gera restrição de conta, não apenas erro de mensagem
 - **Deduplicação automática de leads** (R-020) — decisão manual do Admin para evitar sobreposição
 
 ## Context
@@ -134,9 +135,18 @@ O diretório contém apenas `main.py` — um script não relacionado (gera um ch
 
 ## Key Decisions
 
-| Decision | Rationale | Outcome |
+| Decisão | Rationale | Outcome |
 |----------|-----------|---------|
-| Primeiro contato sempre humano; bot só assume depois | Evita Appearance robótica, confusão no lead e risco de banimento (R-001) | — Pending |
+| R-019 corrigido: `onWhatsApp()` volta ao escopo | Pesquisa: envio a número inexistente gera restrição de conta (erro 463 / reach-out) — não só erro de mensagem | ✓ Good |
+| Primeiro contato sempre humano; bot só assume depois | Erro 463/RFT faz da 1ª msg manual a mitigação técnica anti-ban primária, além de evitar aparência robótica (R-001) | ✓ Good |
+| R-023 com 2ª trava dura (contatos novos/dia via `fetchNewChatMessageCap()`) | Orçamento real é N contatos novos/dia, não só 20-30 mensagens; retry de 463 proibido | — Pending |
+| R-007 com misfire `FIRE_ONCE` + dreno limitado/jitterado | Dreno em rajada após restart é risco de ban (AR-008) — precisa de política + ADR | — Pending |
+| Baileys 7.0.0-rc14 pin exato (via `--save-exact`) | A linha 6.7.x não tem tctoken/erro-463/APIs de quota — é o caminho anti-ban primário | ⚠️ Revisit |
+| Node 24 LTS + TypeScript + Biome + Drizzle + `pg-boss` (sem Redis) | `pg-boss` evita serviço extra (R-044); Biome evita shim typescript-eslint/TS7 | — Pending |
+| Auth state do Baileys + backups fora da árvore OneDrive | OneDrive sincronizaria dados LGPD sem criptografia, contradizendo R-033 | ✓ Good |
+| Shadow mode como gate do piloto | R-061 exige ~30 dias com risco diário; shadow valida fala e guardrails sem gastar a janela de tolerância do número | — Pending |
+| Prospecção fria não move nunca para API oficial | É proibida na plataforma oficial da Meta (opt-in + template); o conjunto conformável é anti-feature, não v2 | ✓ Good |
+| Break-up message é questão aberta | R-005 encerra em "sem resposta" sem break-up; mercado BR reporta break-up como maior taxa de resposta — não muda o requisito, decide com dado do piloto | ⚠️ Revisit |
 | Camada de conexão ao WhatsApp isolada em interface/adaptador | Permite migrar de Baileys/WPPConnect para API oficial sem quebrar histórico, status ou agendamentos (R-016) | — Pending |
 | Handoff como mecanismo central, não exceção | Preço, agendamento, opt-out, irritação e dúvida complexa sempre voltam ao humano; é o que protege o número (R-012, R-065) | — Pending |
 | Silêncio total em suspeita de automação | R-056/R-057 e AR-006: a IA não nega, não admite, não desvia — o Admin assume como humano | — Pending |
