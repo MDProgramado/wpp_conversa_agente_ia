@@ -153,23 +153,23 @@ Explicitamente excluídos. Documentado para prevenir escopo creep.
 
 ## Traceability
 
-Atualizado durante a criação do roadmap.
+Atualizado na criação do roadmap (2026-09-28), mapeamento corrigido após auditoria dos 60 REQ-IDs v1 contra a estrutura do sintetizador.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | OPRE-01 | Phase 1 | Pending |
-| OPRE-02 | Phase 1 | Pending |
-| OPRE-03 | Phase 1 | Pending |
-| OPRE-04 | Phase 1 | Pending |
-| OPRE-05 | Phase 1 | Pending |
+| OPRE-02 | Phase 4 | Pending |
+| OPRE-03 | Phase 4 | Pending |
+| OPRE-04 | Phase 2 | Pending |
+| OPRE-05 | Phase 2 | Pending |
 | LEAD-01 | Phase 1 | Pending |
 | LEAD-02 | Phase 1 | Pending |
 | LEAD-03 | Phase 1 | Pending |
 | LEAD-04 | Phase 1 | Pending |
-| LEAD-05 | Phase 1 | Pending |
-| LEAD-06 | Phase 1 | Pending |
+| LEAD-05 | Phase 2 | Pending |
+| LEAD-06 | Phase 2 | Pending |
 | WHS-01 | Phase 1 | Pending |
-| WHS-02 | Phase 1 | Pending |
+| WHS-02 | Phase 3 | Pending |
 | WHS-03 | Phase 1 | Pending |
 | WHS-04 | Phase 1 | Pending |
 | WHS-05 | Phase 1 | Pending |
@@ -183,25 +183,25 @@ Atualizado durante a criação do roadmap.
 | CONV-08 | Phase 2 | Pending |
 | CONV-09 | Phase 2 | Pending |
 | CONV-10 | Phase 2 | Pending |
-| CONV-11 | Phase 2 | Pending |
+| CONV-11 | Phase 1 | Pending |
 | CONV-12 | Phase 2 | Pending |
-| CONV-13 | Phase 2 | Pending |
-| CONV-14 | Phase 2 | Pending |
+| CONV-13 | Phase 1 | Pending |
+| CONV-14 | Phase 1 | Pending |
 | FLUP-01 | Phase 3 | Pending |
 | FLUP-02 | Phase 3 | Pending |
 | FLUP-03 | Phase 3 | Pending |
-| FLUP-04 | Phase 3 | Pending |
-| FLUP-05 | Phase 3 | Pending |
+| FLUP-04 | Phase 2 | Pending |
+| FLUP-05 | Phase 2 | Pending |
 | FLUP-06 | Phase 3 | Pending |
-| FLUP-07 | Phase 3 | Pending |
+| FLUP-07 | Phase 2 | Pending |
 | FLUP-08 | Phase 3 | Pending |
-| FLUP-09 | Phase 3 | Pending |
-| FLUP-10 | Phase 3 | Pending |
+| FLUP-09 | Phase 2 | Pending |
+| FLUP-10 | Phase 2 | Pending |
 | CRM-01 | Phase 3 | Pending |
-| CRM-02 | Phase 3 | Pending |
+| CRM-02 | Phase 2 | Pending |
 | CRM-03 | Phase 3 | Pending |
 | INTR-01 | Phase 1 | Pending |
-| COMP-01 | Phase 1 | Pending |
+| COMP-01 | Phase 2 | Pending |
 | COMP-02 | Phase 1 | Pending |
 | COMP-03 | Phase 1 | Pending |
 | COMP-04 | Phase 1 | Pending |
@@ -219,10 +219,11 @@ Atualizado durante a criação do roadmap.
 | PILO-03 | Phase 4 | Pending |
 
 **Coverage:**
-- v1 requirements: 67 total
-- Mapped to phases: 67
+- v1 requirements (REQ-IDs): 60 total
+- Mapped to phases: 60
 - Unmapped: 0 ✓
+- Nota: a contagem "67" (R-001…R-067) inclui 7 IDs v2/fora de escopo (R-029, R-030, R-035, R-036, R-039, R-040, R-048); todos os 60 requisitos v1 em REQ-IDs estão mapeados, sem órfãos nem duplicatas.
 
 ---
 *Requirements defined: 2026-09-28*
-*Last updated: 2026-09-28 after initial definition (auto mode, com correções da pesquisa: R-019, R-023, R-007)*
+*Last updated: 2026-09-28 after roadmap creation (traceability auditado e corrigido: CONV-13/CONV-14 → Fase 1, LEAD-05/06 e handoffs → Fase 2, OPRE-02/03 → Fase 4)*
