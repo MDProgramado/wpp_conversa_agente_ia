@@ -87,23 +87,35 @@ resolver para dentro de um caminho com atributo `ReparsePoint` (OneDrive), o boo
 
 O gate é **função pura de decisão**: `evaluatePolicy(input) → Decision`. Ele **não** envia nada, não
 consulta o banco e não tem efeito colateral. Quem detecta e quem bloqueia é o chamador; o gate só
-julgou com o snapshot que recebeu. Ordem fixa e imutável (docs/10-anti-requisitos.md):
+julgou com o snapshot que recebeu. Ordem fixa e imutável (docs/10-anti-requisitos.md), com 15
+entradas — `GUARD_ORDER` é a fonte única, exportada e imutável:
 
 ```
-kill-switch → base legal (R-064) → opt-out (R-024/AR-006) → handoff (R-012/AR-005)
-→ mídia recebida (R-038/AR-004) → preço/proposta (R-011/AR-001) → agendamento (R-025/AR-002)
-→ mídia de saída (R-037/AR-004) → revelação de automação (R-057/AR-011) → janela (R-006/AR-010)
-→ limite diário (R-023/AR-003) → Guard 0 R-001 → permitir
+kill_switch_ativo → r001_primeiro_contato_nao_humano → lead_numero_invalido → ar011_base_legal
+→ ar005_opt_out → ar010_handoff_ativo → ar009_midia_recebida → ar001_preco → ar002_proposta
+→ ar012_preco_como_objecao → ar003_agendamento → ar004_midia_saida → ar006_revelacao_automacao
+→ ar007_fora_da_janela → ar008_limite_diario → send
 ```
+
+`AR_MAP` (18 entradas) traduz cada `GateReason` da união fechada num AR e no requisito de origem:
+`ar001_preco`/AR-001/R-011 (preço), `ar002_proposta`/AR-002/R-012 (proposta), `ar003_agendamento`/AR-003/R-025,
+`ar004_midia_saida`/AR-004/R-037 (mídia de saída), `ar005_opt_out`/AR-005/R-024, `ar006_revelacao_automacao`/AR-006/R-057,
+`ar007_fora_da_janela`/AR-007/R-006, `ar008_limite_diario`/AR-008/R-023, `ar009_midia_recebida`/AR-009/R-038,
+`ar010_handoff_ativo`/AR-010/R-014+R-066, `ar011_base_legal`/AR-011/R-064, `ar012_preco_como_objecao`/AR-012/R-012.
+Os 6 demais motivos (`kill_switch_ativo`, `r001_primeiro_contato_nao_humano`, `lead_numero_invalido`,
+`envio_sem_gate`, `timeout`, `erro_nao_mapeado`) são **não-AR** com `ar: null` explícito no mapa.
 
 `Guard 0 / R-001` fica **fora** de AR-001..AR-012: `AR-001` é "negociar preço, valor, desconto"
 (preço); `R-001` é "a primeira mensagem foi humana" (canal). São eixos ortogonais — um lead pode ter
 comprado antes e ainda assim ser novo para o bot. Por isso `firstContactByHuman` é um campo do
 snapshot, alimentado **exclusivamente** por evento Admin com `key.fromMe === true`, e nunca pela fila,
-pela API REST nem por job.
+pela API REST nem por job. `envio_sem_gate` não é um décimo terceiro AR: é invariante estrutural,
+provada por `noRestrictedImports` (um único arquivo do projeto importa `ChannelPort`) e pelo teste de
+choke-point por grep (um único chamador de `sendText`).
 
 Cada guarda é um módulo isolado com **exatamente um** `evaluate` exportado. Não há `arLogic`
-monolítico: 12 arquivos de 20–60 linhas cada, com testes por arquivo.
+monolítico: 12 arquivos de 20–60 linhas cada (`guards/ar-001.ts`..`ar-012.ts`, **sem** `ar-013.ts`),
+com testes por arquivo.
 
 ## 5. Human Checkpoints
 
@@ -163,8 +175,9 @@ Fora do esqueleto, por escopo explícito da Fase 01:
 - `01-03-PLAN.md` consome: `ChannelPort`, `schema.ts` (`leads`, `conversations`), `migrationsFolder`,
   o fato de que `src/channel/` é o único lugar que importa Baileys, e o pin exato `7.0.0-rc14`.
 - `01-04-PLAN.md` consome: `evaluate-policy.ts`, `types.ts`, `dispatcher.ts`, `outbox`, o mapa de
-  `biome.json`, e as 13 tabelas com os triggers de append-only e de irreversibilidade de `opt_out`.
-- `01-05-PLAN.md` consome: `scripts/notify.ps1`, `outbox`, `dispatcher.ts`, `daily_counters`,
-  `channel_accounts`, o `GUARD_ORDER` de 13 invariantes e o tratamento de 463 sem retry.
+  `biome.json`, e as tabelas com os triggers de append-only e de irreversibilidade de `opt_out`.
+- `01-05-PLAN.md` consome: `scripts/notify.ps1`, `dispatch()` (branch `send` com humanização por
+  lead), `outbox`, `daily_counters`, `channel_accounts`, o `GUARD_ORDER` de 15 entradas e o
+  tratamento de 463 sem retry.
 
 Fases futuras citam este arquivo, não os resumos de plano, para decisões arquiteturais.

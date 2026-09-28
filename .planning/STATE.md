@@ -62,6 +62,10 @@ Decisões completas em PROJECT.md (tabela Key Decisions). Recentes que afetam o 
 - **Shadow mode é gate de P1:** Fase 2 valida fala e guardrails sem consumir a tolerância do número; saída da F2 exige relatório shadow.
 - **R-019 corrigido pela pesquisa:** `onWhatsApp()` volta ao escopo; estado terminal NUMERO_INVALIDO.
 - **R-023 com 2ª trava dura:** contatos novos/dia via `fetchNewChatMessageCap()`; 463 nunca retryado.
+- **Ambiente resolvido 2026-09-28 (pós-pesquisa Fase 1):**
+  - **Baileys `7.0.0-rc14` confirmado** despite `AGENTS.md` §STACK.md fixar `6.7.24`. As fontes do projeto (PROJECT.md Key Decisions, STATE.md, 01-CONTEXT.md D-01/specifics) decidem rc14 porque a linha 6.7.x não tem tctoken/erro-463/APIs de quota — sem elas, WHS-04 e LEAD-03 ficam sem implementação. `AGENTS.md` é snapshot de pesquisa pré-projeto e está desatualizado neste ponto. **Follow-up: corrigir `AGENTS.md` §STACK.md.**
+  - **PostgreSQL 18.3 é o alvo** (o STACK.md autoriza "17.x **ou 18.x se já instalado**"; 18.3 está instalado e `pg_dump`/`pg_restore` são 18.3 = mesma major do servidor). Sem migração de dados.
+  - **Node 24 LTS é o alvo, mas a máquina tem v22.14.0.** Gap real. Vira **tarefa de preflight** no primeiro plano da Fase 1 (instalar/verificar Node 24 LTS antes de qualquer dependência), não uma decisão de arquitetura.
 
 ### Todos Pendentes
 
@@ -74,6 +78,8 @@ Nenhum ainda.
 - ⚠️ **API do caça-leads não especificada** (schema, auth, rate limit) — bloqueia LEAD-01 na integração (não a arquitetura); decidir forma do insert antes (AR-011 exige `legal_registered_at` na criação).
 - ⚠️ **Smoke test Windows de Fase 1** — notificação (Focus Assist, ExecutionPolicy, som em RDP) e presença de `fetchAccountReachoutTimelock` no typings do pacote instalado precisam de validação empírica na máquina do Admin.
 - ⚠️ **R-059 (número único, sem redundância)** — risco dominante aceito e documentado; mitigação: shadow mode, kill switch, appeal preparado, exportação contínua do CRM.
+- ⚠️ **Node 22.14.0 instalado vs. Node 24 LTS exigido** (2026-09-28) — `ai@7` aceita `>=22`, mas `typescript@7.0.2`/drizzle-kit/vite seguem a pinagem do STACK em 24 LTS. Preflight obrigatório antes da primeira dependência.
+- ⚠️ **`AGENTS.md` §STACK.md desatualizado** — fixa `6.7.24`, projeto decide `7.0.0-rc14`. Risco de um agente futuro reverter o pin. Corrigir.
 
 ## Itens Adiados
 
