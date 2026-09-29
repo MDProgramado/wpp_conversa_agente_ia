@@ -69,6 +69,21 @@ Sistema local (Windows) de automação de conversas no WhatsApp para prospecçã
 <!-- GSD:project-end -->
 
 <!-- GSD:stack-start source:research/STACK.md -->
+
+> ## ⚠️ NOTA DE PIN — DECISÃO DO PROJETO (2026-09-28) — PREVALECE SOBRE TUDO ABAIXO
+>
+> **O pin exato do canal é `@whiskeysockets/baileys@7.0.0-rc14`, instalado com `--save-exact`.**
+> A linha `6.7.x` é **pré-tctoken** e **não** expõe `fetchNewChatMessageCap()`,
+> `fetchAccountReachoutTimelock()` nem o tratamento do erro 463 — sem essas três coisas, WHS-04
+> (travas duras de cota e o 463 jamais retryado) e LEAD-03 (estado terminal `NUMERO_INVALIDO`)
+> ficam **sem implementação**. Este é o motivo técnico; ver `docs/adr/001-pin-baileys-rc14.md`
+> (ADR-001, imutável, com plano de rollback) e `01-PATTERNS.md` §2.1 (P2).
+>
+> Todo o material desta seção que ainda recomendar a linha `6.7.x`, tratar o RC pinado como
+> "instável demais para um número insubstituível" ou dizer para instalar `latest` em vez do pin
+> exato — está **desatualizado e não deve ser seguido**. A versão pinada **é** um RC; a linha que
+> **não** deve ser usada é a `6.7.x`.
+
 ## Technology Stack
 
 ## Executive Summary
@@ -78,7 +93,7 @@ Sistema local (Windows) de automação de conversas no WhatsApp para prospecçã
 |------------|---------|---------|-----------------|
 | **Node.js** | **24.21.0 (LTS "Krypton")** | Runtime | Current is v26.10.0 (not LTS). Node 24 is the active LTS line and satisfies `ai@7`'s `engines: node >=22`. LTS matters here: Baileys is an unofficial protocol client and you want OS/runtime stability over bleeding-edge. **Do not use Node 26** — it is Current, not LTS, and a long-running always-on bot should not ride the cutting edge. |
 | **TypeScript** | **7.0.2** (GA 2026-07-08) | Language | Go-native compiler, ~8-12x faster type-check, and now the npm `latest`. Safe for this project specifically because the codebase is pure `.ts`/`.tsx` with no Volar-ecosystem dependency (no Vue/Svelte/Astro/MDX). **This is a greenfield project, so the TS 6→7 migration tax is zero** — you adopt the final state on day one instead of inheriting debt. `typescript@7.0.2` ships the `tsc` binary directly; `tsgo` is gone. |
-| **@whiskeysockets/baileys** | **6.7.24 — PIN EXACTLY** | WhatsApp multi-device WebSocket client | Pure TypeScript, no browser, ~50 MB RAM (vs 200-500 MB for Chromium), MIT license (vs WPPConnect's LGPL), 11.2k stars, repo pushed 2026-09-27. Windows-friendly: no Chromium to fight antivirus heuristics over. See §Version Pinning. **Confidence HIGH on library choice; MEDIUM on version-line choice.** |
+| **@whiskeysockets/baileys** | **7.0.0-rc14 — PIN EXACTLY** | WhatsApp multi-device WebSocket client | Pure TypeScript, no browser, ~50 MB RAM (vs 200-500 MB for Chromium), MIT license (vs WPPConnect's LGPL), 11.2k stars, repo pushed 2026-09-27. Windows-friendly: no Chromium to fight antivirus heuristics over. See §Version Pinning. **Confidence HIGH on library choice; HIGH on version-line choice (project decision — see the PIN note above and ADR-001).** |
 | **PostgreSQL** | **17.x local** (or 18.x if already installed) | Persistence | Mandated by R-031. 17 is the mature stable line with the widest tooling compatibility. **Critical:** use the `pg_dump` binary from the *same* installation as the server, or `pg_dump` will fail on a major-version mismatch. |
 | **drizzle-orm** + **drizzle-kit** | **0.45.3** / **0.31.11** | Typed SQL ORM + migrations | `latest` is a genuine stable release (unlike Prisma's). Type-safe schema that shares types with the UI and the LLM schemas. No query-engine binary (Prisma ships Rust engines that historically misbehave on Windows + OneDrive/sync folders). Migration story is plain `.sql` files — reviewable, auditable, and it satisfies R-031's "script/migração de schema". |
 | **pg** | **8.23.0** | PostgreSQL driver | Drizzle's first-class `pg` peer (`pg: '>=8'`), and `pg-boss@12.35.0` depends on `pg ^8.23.0` — exact version alignment, no dedupe friction. |
@@ -127,7 +142,7 @@ Sistema local (Windows) de automação de conversas no WhatsApp para prospecçã
 ## Version Pinning Strategy
 | Package | `latest` tag | Stable line | What you install |
 |---------|--------------|-------------|------------------|
-| `@whiskeysockets/baileys` | `7.0.0-rc14` (RC) | `6.7.24` (dist-tag `legacy`) | **`6.7.24`, `--save-exact`** |
+| `@whiskeysockets/baileys` | `7.0.0-rc14` (RC) | `6.7.x` (dist-tag `legacy`, **NÃO usar**) | **`7.0.0-rc14`, `--save-exact`** |
 | `prisma` | `8.0.0-rc.17` (RC) | `7.10.0` (dist-tag `prev`) | *not used — Drizzle instead* |
 | `typescript` | `7.0.2` (GA) | `7.0.2` | `7.0.2`, `--save-exact` |
 | `drizzle-orm` | `0.45.3` (stable) | `0.45.3` | `0.45.3` |
@@ -153,7 +168,7 @@ Sistema local (Windows) de automação de conversas no WhatsApp para prospecçã
 - R-001 (human sends the first contact) is the single highest-value ban mitigation available: a human-initiated conversation is the strongest legitimacy signal in the system.
 - **R-007 is the sharpest edge.** Firing *every* overdue follow-up the moment the app opens is a burst of machine-cadence traffic to cold leads — precisely the pattern that gets flagged. **Recommend a bounded, rate-limited drain** (e.g. max N per boot with jittered spacing), and treat this as a research item, not an implementation detail.
 - **R-059's risk rating (ALTO, "sem redundância") is correctly stated and should be treated as the project's dominant operational risk.** Plan for the number being lost: export the CRM to CSV continuously so a ban costs you the channel, not the pipeline.
-### Version choice: `6.7.24` vs `7.0.0-rc14` — and the LID trap
+### Version choice: `7.0.0-rc14` (pin do projeto) vs `6.7.x` (pré-tctoken) — and the LID trap
 | | v6.7 | v7.0 |
 |---|---|---|
 | `Contact.id` | always a phone-number JID (`@s.whatsapp.net`) | **either LID or JID (preferred)** |
@@ -163,7 +178,7 @@ Sistema local (Windows) de automação de conversas no WhatsApp para prospecçã
 - Store `phone_number` (E.164, your business key), `wa_jid` (the raw `remoteJid`), and `lid` as **separate nullable columns** on `leads` and `conversations`.
 - Never use `remoteJid` as a primary key or as a foreign key target.
 - Add a `JidResolver` in the adapter that maps LID↔PN via Baileys' `lidMapping` store / `onWhatsApp()`, and log an explicit `jid_unresolved` event when it cannot.
-- **Confidence: HIGH** that LID must be handled. **MEDIUM** that `6.7.24` is the right pin versus `7.0.0-rc14` — both are defensible; `6.7.24` wins on the "never ship an RC to an irreplaceable number" rule. Revisit when 7.0.0 goes stable; the adapter design means the upgrade is contained.
+- **Confidence: HIGH** that LID must be handled. **HIGH** that `7.0.0-rc14` is the right pin: the `6.7.x` line is pre-tctoken and exposes neither `fetchNewChatMessageCap()` nor `fetchAccountReachoutTimelock()` nor the 463 path, so WHS-04 and LEAD-03 would have no implementation (project decision, ADR-001). Revisit when 7.0.0 goes stable; the adapter design means the upgrade is contained.
 ## Node.js + TypeScript Scaffolding, and Why Not Python
 | Factor | Node.js + TS | Python |
 |---|---|---|
@@ -263,10 +278,10 @@ Sistema local (Windows) de automação de conversas no WhatsApp para prospecçã
 ## Alternatives Considered
 | Recommended | Alternative | When to Use the Alternative |
 |---|---|---|
-| Baileys 6.7.24 | **Baileys 7.0.0-rc14** | Once 7.0.0 ships stable *and* you have a spare SIM to test the LID migration on. Never in the pilot — R-059 makes the number irreplaceable. |
-| Baileys 6.7.24 | **WPPConnect** (`@wppconnect-team/wppconnect`) | When you need its built-in REST server and multi-session manager — i.e. R-048 multiplies into many numbers and you want language-agnostic HTTP access. Accept the LGPL and the Chromium cost at that point. |
-| Baileys 6.7.24 | **whatsmeow** (Go) | If Baileys breaks unrecoverably and you need a different implementation of the same protocol. Requires a Go toolchain + a bridge process on Windows — a real cost, and it means TS types stop at the bridge. |
-| Baileys 6.7.24 | **whatsapp-web.js** | Never, for this project. Same Chromium fragility as WPPConnect, but JavaScript and without the extra tooling. |
+| Baileys 7.0.0-rc14 | **Baileys 6.7.x** (dist-tag `legacy`) | Only as a last resort, on total channel incapability — and then LEAD-03/WHS-04 **must** be revalidated, because that line is pre-tctoken and has no `fetchNewChatMessageCap`/`fetchAccountReachoutTimelock`/463 path. Rollback plan in ADR-001. |
+| Baileys 7.0.0-rc14 | **WPPConnect** (`@wppconnect-team/wppconnect`) | When you need its built-in REST server and multi-session manager — i.e. R-048 multiplies into many numbers and you want language-agnostic HTTP access. Accept the LGPL and the Chromium cost at that point. |
+| Baileys 7.0.0-rc14 | **whatsmeow** (Go) | If Baileys breaks unrecoverably and you need a different implementation of the same protocol. Requires a Go toolchain + a bridge process on Windows — a real cost, and it means TS types stop at the bridge. |
+| Baileys 7.0.0-rc14 | **whatsapp-web.js** | Never, for this project. Same Chromium fragility as WPPConnect, but JavaScript and without the extra tooling. |
 | Drizzle | **Prisma 7.10.0** | If you want a mature high-level ORM and already know it. Requires consciously avoiding `latest` (= `8.0.0-rc.17`) and accepting the query-engine binary on Windows. |
 | Drizzle | **Kysely 0.29.6** | If you want a pure query builder with no ORM and are comfortable writing SQL. Slightly better for very complex queries; weaker migration CLI. |
 | pg-boss | **Hand-rolled `scheduled_jobs` poller** | MVP-only, to avoid a queue dependency in the first phase. Migrate to pg-boss before the handoff and daily-limit paths grow. |
@@ -281,7 +296,7 @@ Sistema local (Windows) de automação de conversas no WhatsApp para prospecçã
 ## What NOT to Use
 | Avoid | Why | Use Instead |
 |---|---|---|
-| **`@whiskeysockets/baileys@latest`** | `latest` = `7.0.0-rc14`, a release candidate that has been RC since Sept 2025. The 7.x line carries a **breaking change to contact identity (LID)** and no migration guide is published at the URL the repo points to (`whiskey.so/migrate-latest` → 404). | `@whiskeysockets/baileys@6.7.24`, installed with `--save-exact` |
+| **`@whiskeysockets/baileys@6.7.x`** / `latest` sem pin | A linha `6.7.x` é **pré-tctoken**: não expõe `fetchNewChatMessageCap()`, `fetchAccountReachoutTimelock()` nem o tratamento do erro 463. `latest` = `7.0.0-rc14`, que é exatamente o pin do projeto — mas `latest` continua sendo proibido porque a tag pode se mover. | `@whiskeysockets/baileys@7.0.0-rc14`, instalado com `--save-exact` |
 | **`prisma@latest`** | `latest` = `8.0.0-rc.17`. Prisma's stable line is `7.10.0` under dist-tag `prev` — a deliberate dist-tag arrangement that makes a casual `npm i prisma` land on an RC. | `drizzle-orm@0.45.3` |
 | **Puppeteer / any Chromium** (`puppeteer`, `whatsapp-web.js`, `venom-bot`, `@wppconnect-team/wppconnect`) | 200-500 MB RAM, Windows AV false positives, and breakage every time WhatsApp ships a web-client change. WPPConnect is additionally **LGPL-3.0-or-later** — copyleft on a commercial product. Baileys is MIT, no browser, ~50 MB. | Baileys protocol client |
 | **BullMQ + Redis** | Adds a fourth service to install, secure, back up, and keep alive — violating the local-only, three-integration scope (R-044) — to solve a problem the existing PostgreSQL already solves. | `pg-boss@12.35.0` |
@@ -312,8 +327,8 @@ Sistema local (Windows) de automação de conversas no WhatsApp para prospecçã
 ## Version Compatibility
 | Package A | Compatible With | Notes |
 |---|---|---|
-| `@whiskeysockets/baileys@6.7.24` | Node ≥ 20, ESM or CJS | Ships its own `useMultiFileAuthState`. **The `auth_info_baileys/` folder is the session — back it up separately from the DB and never commit it.** Requires `BufferJSON` replacer/reviver when serializing creds to JSON. |
-| `@whiskeysockets/baileys@7.0.0-rc14` | — | **Do not install.** `Contact.id` may be LID; `makeSignalRepository` signature changed; migration URL is 404. |
+| `@whiskeysockets/baileys@7.0.0-rc14` | Node ≥ 22, ESM | Ships its own `useMultiFileAuthState`. **The `auth_info_baileys/` folder is the session — back it up separately from the DB and never commit it.** Requires `BufferJSON` replacer/reviver when serializing creds to JSON. |
+| `@whiskeysockets/baileys@6.7.x` (legacy) | Node ≥ 20, ESM or CJS | **Do not install.** Pre-tctoken: no `fetchNewChatMessageCap`, no `fetchAccountReachoutTimelock`, no 463 path. WHS-04 and LEAD-03 would have no implementation. |
 | `drizzle-orm@0.45.3` | `pg >=8`, `drizzle-kit@0.31.11` | `drizzle-kit` depends on `tsx ^4.21.0` + `esbuild ^0.25.4` (it does **not** use the TypeScript compiler API, so it is unaffected by TypeScript 7). |
 | `pg-boss@12.35.0` | `pg ^8.23.0` | **Exact match** with the recommended driver — one `pg` in the tree, no dual-driver connection pools. `pg-boss` needs its own connection/pool, separate from the app's. |
 | `pg@8.23.0` | `@types/pg@8.23.1` | Keep lockstep. |
@@ -328,7 +343,7 @@ Sistema local (Windows) de automação de conversas no WhatsApp para prospecçã
 | Node.js 24 LTS over Node 26 | HIGH | `nodejs.org/dist/index.json` verified 2026-09-28 |
 | TypeScript 7.0.2 for a pure-TS greenfield project | MEDIUM-HIGH | GA 2026-07-08; multiple sources confirm pure-TS is the supported case. New (~2.5 months old). |
 | Baileys over WPPConnect | HIGH | GitHub API + npm verified: MIT vs LGPL, TS vs TS, 50 MB vs 200-500 MB |
-| Baileys **6.7.24** over `latest` RC | MEDIUM | RC-stability argument is strong and verifiable; but 7.x has had 13 months of RC and may be the more *fixed* branch. Both are defensible. |
+| Baileys **7.0.0-rc14** (project pin) over the `6.7.x` legacy line | HIGH | Verified on the installed package: the 7.x typings expose `fetchNewChatMessageCap` and `fetchAccountReachoutTimelock` and the 463 path; the 6.7.x line does not, which would leave WHS-04 and LEAD-03 unimplemented. See ADR-001. |
 | LID normalization required from day one | HIGH | Confirmed in Baileys source via Context7; open LID bugs present in the 6.7.x line too |
 | Node.js + TypeScript over Python | HIGH | Baileys is TS-only; AI SDK is TS-first; R-044 needs no Python |
 | LLM control in-app, not in prompts | HIGH | Architectural; follows directly from AR-001…AR-012 being invariants |
@@ -344,7 +359,7 @@ Sistema local (Windows) de automação de conversas no WhatsApp para prospecçã
 - `/whiskeysockets/baileys` — `makeWASocket`, `useMultiFileAuthState`, `requestPairingCode`, connection lifecycle
 - `/websites/ai-sdk_dev` — `generateObject` / `Output.object` structured output, `stopWhen` + tool calling interaction
 - `/websites/baileys_wiki` — library discovery, corroborating snippets
-- `npm view @whiskeysockets/baileys dist-tags time license` → `latest: 7.0.0-rc14`, `legacy: 6.7.24`, both published 2026-07-29; MIT
+- `npm view @whiskeysockets/baileys dist-tags time license` → `latest: 7.0.0-rc14`, `legacy:` a 6.7.x line, both published 2026-07-29; MIT
 - `npm view prisma dist-tags` → `latest: 8.0.0-rc.17`, `prev: 7.10.0`
 - `npm view typescript dist-tags time` → `latest: 7.0.2` (2026-07-08), `6.0.3` (2026-04-16)
 - `npm view drizzle-orm dist-tags.latest` → `0.45.3` (stable, no RC in `latest`)
@@ -354,7 +369,7 @@ Sistema local (Windows) de automação de conversas no WhatsApp para prospecçã
 - `npm view @wppconnect-team/wppconnect license` → `LGPL-3.0-or-later`; `@wppconnect/wa-js` → `Apache-2.0`
 - `npm view venom-bot time.modified` → 2024-11-23 (effectively unmaintained)
 - `nodejs.org/dist/index.json` → current v26.10.0, LTS Krypton v24.21.0
-- `WhiskeySockets/Baileys` → 11,174 stars, 333 open issues, pushed 2026-09-27; releases `v6.7.24` and `v7.0.0-rc14` same day
+- `WhiskeySockets/Baileys` → 11,174 stars, 333 open issues, pushed 2026-09-27; releases a 6.7.x line and `v7.0.0-rc14` same day
 - `wppconnect-team/*` → 8 repos pushed on 2026-09-28; org maintains **forks of `baileys` and `whatsmeow`**
 - `mikaelbr/node-notifier` → **last push 2024-06-24**, 5,843 stars, **129 open issues**
 - `WhiskeySockets/Baileys` LID issue search → open LID-migration bugs on the current line (proto3 `required` fields, `status@broadcast` ack 479, MESSAGE_EDIT empty `key.id`, GCM decrypt failure in LID-migrated chats)

@@ -1,8 +1,13 @@
+# Distribui as skills de `.ruler/skills/` para os agentes que as suportam nativamente.
+#
+# O destino do OpenCode é a constante `OPENCODE_SKILLS_PATH` do Ruler
+# (`.opencode/skills`) e NÃO é configurável: o schema de `[agents.<nome>]`
+# aceita apenas `enabled`, `output_path`, `output_path_instructions`,
+# `output_path_config`, `mcp` e `mcp_servers`. A chave `skills_dir` nunca foi
+# válida e faz o `ruler apply` abortar com
+# "Invalid configuration file format".
 [skills]
 enabled = true
 
 [agents.opencode]
-skills_dir = ".opencode/skills"
-
-[merge]
-strategy = "merge"
+enabled = true
