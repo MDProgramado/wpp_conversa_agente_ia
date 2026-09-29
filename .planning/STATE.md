@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Pronto para planejar
-last_updated: "2026-09-28T16:39:52.563Z"
+status: Planejado
+last_updated: "2026-09-29T10:26:56.533Z"
 progress:
   total_phases: 4
   completed_phases: 0
-  total_plans: 0
+  total_plans: 5
   completed_plans: 0
   percent: 0
 ---
@@ -24,11 +24,11 @@ Ver: `.planning/PROJECT.md` (atualizado 2026-09-28)
 ## Posição Atual
 
 Fase: 1 de 4 (Fundação, Canal e Gate de Envio)
-Plano: 0 de 3 na fase atual
-Status: Pronto para planejar
-Última atividade: 2026-09-28 — Roadmap criado (4 fases, 60/60 requisitos mapeados)
+Plano: 0 de 5 na fase atual
+Status: Planejado
+Última atividade: 2026-09-29 — Fase 1 planejada: 5 planos (01-01…01-05), SKELETON, RESEARCH e PATTERNS; ROADMAP e STATE sincronizados
 
-Progresso: [░░░░░░░░░░] 0%
+Progresso: [░░░░░░░░░░] 0% (0 de 5 planos executados; 5 de 5 planejados)
 
 ## Métricas de Desempenho
 
@@ -40,12 +40,12 @@ Progresso: [░░░░░░░░░░] 0%
 
 **Por Fase:**
 
-| Fase | Planos | Total | Média/Plano |
-|------|--------|-------|-------------|
-| 1. Fundação, Canal e Gate | 3 | — | — |
-| 2. IA, Handoff e Shadow | 3 | — | — |
-| 3. Cadência, Operação e Painel | 3 | — | — |
-| 4. Piloto, Calibração e Apuração | 2 | — | — |
+| Fase | Planos | Planejados | Executados | Média/Plano |
+|------|--------|-------------|------------|-------------|
+| 1. Fundação, Canal e Gate | 5 | 5 | 0 | — |
+| 2. IA, Handoff e Shadow | 3 | 0 | 0 | — |
+| 3. Cadência, Operação e Painel | 3 | 0 | 0 | — |
+| 4. Piloto, Calibração e Apuração | 2 | 0 | 0 | — |
 
 *Atualizado após cada plano concluído*
 
@@ -91,9 +91,10 @@ Nenhum ainda.
 
 ## Continuidade de Sessão
 
-Última sessão: 2026-09-28
-Parou em: Roadmap criado e aprovado-pendente; traceability de REQUIREMENTS.md atualizado
-Arquivo de retomada: Nenhum
+Última sessão: 2026-09-29
+Parou em: Fase 1 planejada (5/5). Cadeia `/gsd-plan-phase 1 --auto` interrompida após o commit dos planos; finalizada nesta sessão com o commit dos refinamentos de verificação, `roadmap update-plan-progress 1` e sincronização do STATE. Nenhum plano executado.
+Próximo passo: `/gsd-execute-phase 1` (wave 1 começa por 01-01)
+Arquivo de retomada: `.planning/phases/01-funda-o-canal-e-gate-de-envio/SKELETON.md`
 
 ---
-*Atualizado: 2026-09-28*
+*Atualizado: 2026-09-29*

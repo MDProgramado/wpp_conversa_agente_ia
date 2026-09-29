@@ -37,7 +37,7 @@ depois, quando já existe um negador testado.
 | **Estado de sessão** | `auth_info_baileys/` no **`DATA_ROOT`** (`C:\whatsapp_prospecao\auth`). `.gitignore` **e** `.rulerignore`. A pasta **nunca** é commitada, nunca é logada, tem backup separado do banco. | `auth/` dentro do repo; `Session-baileys/` no OneDrive. |
 | **Fila de envio** | Tabela `outbox` no próprio PostgreSQL, com `idempotency_key` UNIQUE e índice parcial `WHERE status = 'pending'`. Reserva com `FOR UPDATE SKIP LOCKED`. `pg-boss` fica **fora** da Fase 1 (chega na Fase 02, junto com a cadência). | `pg-boss` na Fase 1 (dependência sem consumidor); `node-cron` (in-memory, perde job ao fechar); BullMQ (exige Redis — 4º serviço, viola o escopo de 3 integrações). |
 | **Orquestração de boot** | `scripts/launch.cmd` + registro no Agendador de Tarefas do Windows (`Run whether user is logged on or not`). **Nunca `net start` / `Start-Service`** — os serviços PostgreSQL estão em estado de manual e exigem elevação. | `pm2` (process-tree e log rotation não confiáveis no Windows); `net start` (quebra em contexto não-elevado). |
-| **Qualidade** | Biome `2.5.14` como **barreira de lint** no commit 1: `noRestrictedImports` proibindo Chromium, BullMQ/Redis, Sentry, LangChain, `node-notifier`, `better-sqlite3` fora de `src/channel/**`. `rules.preset` (não `rules.recommended`, depreciado). | ESLint + typescript-eslint (depende da API do compilador TS, indisponível até o 7.1); `@typescript/typescript6` shim. |
+| **Qualidade** | Biome `2.5.14` como **barreira de lint** no commit 1: `noRestrictedImports` proibindo os **11 pacotes** — Chromium, BullMQ/Redis, Sentry, LangChain, `node-notifier`, `better-sqlite3` e `@whiskeysockets/baileys` — em todo o projeto, com um único `overrides` em `src/channel/baileys/**` que re-declara o mesmo mapa sem a chave do Baileys (nunca `off`). `rules.preset` (não `rules.recommended`, depreciado). Mais `scripts/lint-verify-chains.mjs`, barreira das cadeias de verificação: um `<automated>` com `;`, `\|\|`, suíte piped para `tail`, negação de vários arquivos de uma vez ou `grep -c \| grep -c` **não** é uma verificação, é uma falsa verde. | ESLint + typescript-eslint (depende da API do compilador TS, indisponível até o 7.1); `@typescript/typescript6` shim. |
 | **Segredos / config** | `.env` **não** versionado, carregado por `dotenv` a partir de `DATA_ROOT`; `config.local.json` (ponteiros de webhook) também ignorado. `.env.example` versionado. | Segredos em `config.json` versionado (401/403 do Baileys com sessão vazia). |
 | **Notificação** | `scripts/notify.ps1` de primeira parte (WinRT `ToastNotificationManager` + `AppUserModelID` registrado + som). `node-notifier` está **proibido** por lint: último push em 2024-06-24, sem `AppUserModelID`, escreve `.ps1` temporário. | `node-notifier`; Electron; `BurntToast` (módulo com passo de instalação). |
 | **UI** | **Nenhuma.** Fase 01 não constrói painel web, React, Vite nem Fastify. A interação humana do esqueleto é o **toast do Windows** e, no `01-03`, a **leitura do QR** do par de código. | Painel web (Fase 04/05); Electron (2º Chromium, assinatura, falso positivo de AV). |
@@ -110,8 +110,13 @@ Os 6 demais motivos (`kill_switch_ativo`, `r001_primeiro_contato_nao_humano`, `l
 comprado antes e ainda assim ser novo para o bot. Por isso `firstContactByHuman` é um campo do
 snapshot, alimentado **exclusivamente** por evento Admin com `key.fromMe === true`, e nunca pela fila,
 pela API REST nem por job. `envio_sem_gate` não é um décimo terceiro AR: é invariante estrutural,
-provada por `noRestrictedImports` (um único arquivo do projeto importa `ChannelPort`) e pelo teste de
-choke-point por grep (um único chamador de `sendText`).
+provada pelo teste de choke-point por grep — o **conjunto** de arquivos de produção que contêm
+`sendText(` é exatamente `{src/application/dispatcher.ts}`, com a interface (`ChannelPort.ts`, que
+**declara** o método), o fake (`fake-channel.ts`) e o adaptador (`baileys/adapter.ts`) excluídos
+porque são o outro lado da fronteira, não chamadores — e pela barreira de **pacotes** do Biome
+(que impede `puppeteer`/`bullmq`/`node-notifier` e restringe o Baileys a `src/channel/baileys/**`).
+A barreira **não** restringe `ChannelPort` por `noRestrictedImports`: ela é uma interface interna
+do projeto e precisa ser importável pelo dispatcher e pelos testes.
 
 Cada guarda é um módulo isolado com **exatamente um** `evaluate` exportado. Não há `arLogic`
 monolítico: 12 arquivos de 20–60 linhas cada (`guards/ar-001.ts`..`ar-012.ts`, **sem** `ar-013.ts`),

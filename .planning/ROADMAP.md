@@ -35,20 +35,24 @@ O sintetizador propôs 4 fases (Fundação+Canal+Gate ⮑ IA+Handoff+Shadow ⮑ 
 ## Phase Details
 
 ### Phase 1: Fundação, Canal e Gate de Envio
+
 **Goal**: O Admin conecta o único número dedicado, o sistema tem estado durável (Postgres local) e nenhuma mensagem sai sem passar por um único gate que recusa toda fronteira proibida — com as travas anti-ban (463, contatos novos, janela) armadas desde o primeiro dia. R-001 é restrição transversal: o primeiro contato é sempre manual, feito pelo Admin.
 **Mode**: mvp
 **Depends on**: Nothing (first phase)
 **Requirements**: OPRE-01, LEAD-01, LEAD-02, LEAD-03, LEAD-04, WHS-01, WHS-03, WHS-04, WHS-05, CONV-11, CONV-13, CONV-14, INTR-01, COMP-02, COMP-03, COMP-04, COMP-05, NFRQ-01, NFRQ-02, NFRQ-04, NFRQ-06, EQUP-01, EQUP-02
 **Success Criteria** (what must be TRUE):
+
   1. O Admin lê o QR Code, conecta o único número dedicado (WHS-05) e o sistema reconhece como 1ª mensagem apenas as enviadas manualmente por ele — o bot nunca inicia contato (OPRE-01); após queda de rede, reconecta sozinho e retoma sem duplicar envio, respeitando a janela de dias úteis 7h–17h (WHS-01) e com auth state fora do OneDrive (COMP-05).
-  2. Nenhuma mensagem sai sem passar pelo gate único `evaluatePolicy` — verificado por 1 property test por anti-requisito (12 no total) e por lint (`no-restricted-imports`) que bloqueia qualquer chamada ao canal fora do dispatcher; o canal só emite texto e links, sem método de mídia (CONV-14, CONV-11).
+  2. Nenhuma mensagem sai sem passar pelo gate único `evaluatePolicy` — verificado por 1 property test por anti-requisito (12 no total) e pelo choke-point por grep, cujo conjunto de arquivos de produção que contêm `sendText(` é **exatamente** `{src/application/dispatcher.ts}`; a barreira de lint (`noRestrictedImports`) atua sobre **pacotes** — proíbe Chromium/BullMQ/Sentry/LangChain/`node-notifier`/`better-sqlite3` em todo o projeto e restringe o Baileys a `src/channel/baileys/**` —, não sobre a interface `ChannelPort`, que precisa ser importável pelo dispatcher e pelos testes; o canal só emite texto e links, sem método de mídia (CONV-14, CONV-11).
   3. Ao atingir 20 leads/dia, a cota de contatos novos lida do número via `fetchNewChatMessageCap()` ou 20–30 mensagens/dia, o sistema para de enviar e enfileira; erro 463 suspende o contato frio **sem retry**; número inexistente cai no estado terminal NUMERO_INVALIDO sem quebrar a fila (WHS-04, LEAD-03).
   4. O lead importado da API do caça-leads (filtros: estado, cidade, região, nicho, nome-chave) entra somente com origem, base legal e finalidade registradas na criação (bloqueio absoluto AR-011, COMP-03); duplicidades são sinalizadas com histórico de tentativas e a decisão de abordar é manual — nada é apagado (LEAD-04, LEAD-01, LEAD-02).
   5. Falha crítica (WhatsApp desconectado, PostgreSQL parado, API de IA fora, sinal de banimento) gera log em arquivo + notificação local com som e pop-up **comprovada na máquina do Admin** (Focus Assist, ExecutionPolicy — smoke test de Fase 1, NFRQ-04, NFRQ-06); o backup versionado por data/hora em pasta local fora do OneDrive restaura com contagem de linhas conferida (NFRQ-02, COMP-04), e os documentos LGPD (Encarregado nomeado com substituto, canal publicado, teste de balanceamento de 3 fases versionado, risco MUITO ALTO declarado para base sem opt-in) existem versionados (COMP-02).
+
 **Plans**: 5 plans
 **UI hint**: no
 
 Plans:
+
 - [ ] 01-01-PLAN.md — **Walking Skeleton** (wave 1, autonomous: false) — preflight `[BLOCKING]` (Node 24 LTS, PG 18.3, `DATA_ROOT` fora do OneDrive) + correção do pin em `AGENTS.md` + ADR-001; scaffold com pins exatos e barreira de lint D-06; 6 tabelas + `0000_initial.sql` aplicada 2× (idempotente); `launch.cmd` sobe tudo sem elevação; gate puro com Guard 0 + 7 guardas AR (AR-001, AR-003, AR-004, AR-006, AR-007, AR-008, AR-011) + kill switch + `dispatcher` choke-point; checkpoint do toast do Windows
 - [ ] 01-02-PLAN.md — **Fundação de dados e compliance** (wave 2, autonomous: false) — 7 tabelas restantes + 3 colunas de authorship nullable (R-028); `0001_guards_and_audit.sql` com triggers de append-only e de irreversibilidade de `opt_out`; checkpoint de higiene do PostgreSQL (`listen_addresses = localhost`); dossiê LGPD (encarregado, balanceamento, canal do titular, retenção) + ADR-002/003
 - [ ] 01-03-PLAN.md — **Canal e ingestão** (wave 2, autonomous: false) — `session.ts` com detecção de `CREDS_INVALID` (auth corrompido aborta em vez de degradar), `capabilities.ts` com `fetchNewChatMessageCap`/`fetchAccountReachoutTimelock`, `jid-resolver.ts` LID↔PN, `signals.ts` com 463 sem retry, `adapter.ts` sendText-only; `inbound-handler` marcando `first_contact_by_human` **só** por `fromMe` do número dedicado; `lead-importer` gravando origem/base legal/finalidade na mesma transação e nunca reativando opt-out; checkpoint de pareamento real do número
@@ -62,57 +66,69 @@ Plans:
 > entrega trabalho horizontal.
 
 ### Phase 2: IA, Handoff e Shadow Mode
+
 **Goal**: O bot rascunha conversas consultivas, qualifica, respeita todas as fronteiras e para no instante exato em que o humano precisa assumir — tudo validado em shadow mode, sem tocar no número dedicado.
 **Mode**: mvp
 **Depends on**: Phase 1
 **Requirements**: OPRE-04, OPRE-05, LEAD-05, LEAD-06, CONV-01, CONV-02, CONV-03, CONV-04, CONV-05, CONV-06, CONV-07, CONV-08, CONV-09, CONV-10, CONV-12, FLUP-04, FLUP-05, FLUP-07, FLUP-09, FLUP-10, CRM-02, COMP-01, NFRQ-03
 **Success Criteria** (what must be TRUE):
+
   1. Quando o lead responde, o bot rascunha (shadow mode, `engagement_mode = shadow`) uma resposta consultiva via LLM externo — com PII mascarada antes do envio (CONV-03), entendendo a dor antes de oferecer solução (CONV-04), condução dinâmica sem script (CONV-05), reconhecendo e contornando objeções comuns sem prometer condição (CONV-06), mencionando os serviços só de forma consultiva e sem presumir nicho/porte/dor (OPRE-04, OPRE-05), agindo como o Admin humano sem se revelar (CONV-08) — e o Admin vê o rascunho na tela: **zero bytes enviados ao número** (CONV-13 reforçado; CONV-01, CONV-02).
   2. O rascunho é barrado **em código** quando cita valor, prazo, desconto, proposta, agendamento, competidor ou mídia (fail-closed, campos-canário no schema de saída, 1 reprompt e depois silêncio + notificação) (CONV-07); a IA apenas **sugere** o próximo estado e a sugestão é aceita somente se constar nas transições permitidas — a FSM no Postgres decide (CONV-03, CONV-05); o bot nunca agenda sozinho: sem link, horários ou confirmação (FLUP-07).
   3. O lead só é qualificado com os dois critérios (verba/interesse em investir **E** capacidade de decisão), por inferência de contexto ou pergunta direta educada — nunca interrogatório, nunca valor exato (LEAD-05, LEAD-06); cada atualização de status tem justificativa + timestamp, é auditável e corrigível pelo Admin (CRM-02).
   4. Preço/proposta/orçamento, intenção de agendar, "você é robô/IA?", mídia recebida, irritação, ameaça ou dúvida técnica complexa param a automação e disparam handoff com notificação local (som + pop-up) identificando lead, motivo e ação de 1 clique (FLUP-04, FLUP-05, FLUP-09, CONV-12); em suspeita de automação ou irritação o bot fica em **silêncio total** — sem negar, sem admitir, sem desviar, sem mensagem de transição (CONV-09, CONV-10, FLUP-10).
   5. Recusa de receber contato (explícita ou recusa sutil) bloqueia o lead permanentemente e fica registrada em ledger com base legal, finalidade e origem — nenhum caminho a contorna (COMP-01, reforça COMP-03/AR-005); após o handoff o modo muda (mode_changes append-only) e o bot só volta a falar com ação explícita do Admin (NFRQ-03, reforça FLUP-04).
+
 **Plans**: 3 plans
 **UI hint**: yes
 
 Plans:
+
 - [ ] 02-01: LlmPort e FSM hintada — `ScriptedLlmAdapter` primeiro; sanduíche de 3 camadas (LLM extrai intent → código decide → LLM responde com a decisão), schema Zod com campos-canário, `resolveNextState()` com guardas locais vencendo a hint, captura do texto da 1ª mensagem do Admin como contexto (CONV-01/CONV-02), set adversarial pt-BR (~200 mensagens) + harness de bake-off de provedor (escolha de provedor = resultado medido)
 - [ ] 02-02: Handoff e silêncio — `HandoffService` + gatilhos R-012/R-056/R-065/R-038 + `handoff_events` + `mode_changes` + silêncio total, `NotifyPort` (som + pop-up + chime Web Audio como redundância), matcher determinístico de opt-out pt-BR (autoridade) + `llm_signal` (reforço), qualificação auditável (verba + decisão) com histórico de status corrigível
 - [ ] 02-03: Shadow mode — `engagement_mode = shadow` (rascunha, mostra no endpoint mínimo de visualização, nunca envia), kill switch de 1 clique, validação do set adversarial + guardrails, relatório shadow (rascunho vs. o que seria enviado) como gate de saída da Fase 2
 
 ### Phase 3: Cadência, Operação e Painel
+
 **Goal**: O bot roda sozinho dentro da janela e dos limites, mantém cadência conservadora de follow-up e o Admin opera, audita e corrige tudo em um único painel local — com o modo exibido em tempo real.
 **Mode**: mvp
 **Depends on**: Phase 2
 **Requirements**: WHS-02, FLUP-01, FLUP-02, FLUP-03, FLUP-06, FLUP-08, CRM-01, CRM-03, NFRQ-05
 **Success Criteria** (what must be TRUE):
+
   1. Lead sem resposta recebe follow-ups em 1h → 1d → 3d → 7d, no máximo 4 toques; no 7º dia a cadência encerra e marca "sem resposta" — o toque de 15 dias nunca executa (FLUP-03); qualquer resposta, opt-out, handoff ou pausa manual interrompe a cadência (FLUP-02); o primeiro follow-up é curto e sai após tempo configurável (FLUP-01).
   2. O app aberto após um fim de semana não dispara rajada: dreno com misfire `FIRE_ONCE`, limite e jitter — máx. 3 mensagens nos primeiros 10 min e 1 follow-up por lead/dia de drenagem; o restante é **adiado, nunca descartado** (WHS-02).
   3. O Admin opera de um painel único: lista de leads + chat + sugestões da IA + histórico imutável + modo exibido em tempo real ("BOT ATIVO" vs "MÃO HUMANA ATIVA — BOT EM SILÊNCIO") + motivo do silêncio + contador diário + janela + fila de handoff + botões de ação rápida (pausar, assumir, devolver, copiloto, kill switch) — sugestões da IA só são enviadas com ação explícita (NFRQ-05).
   4. O Admin busca, filtra, tagueia, anota e cria tarefas/lembretes; move o lead pelo pipeline (Novo → Contatado → Respondeu → Qualificado → Aquecido → Reunião agendada → Proposta → Fechado → Perdido com motivo) e corrige status manualmente, com histórico imutável (CRM-01, CRM-03); após registrar um agendamento, o bot envia confirmação e lembrete antes da reunião com opção de confirmar/remarcar/cancelar — remarcar ou cancelar vira handoff, respeitando janela e limite (FLUP-08; nota: a pesquisa sugere reagendar/cancelar → handoff por R-025/AR-003).
   5. Depois de o Admin assumir um handoff, o bot entra em modo copiloto: sugere respostas no painel e **nunca envia nada sozinho** (FLUP-06); nenhuma mensagem automática sai fora de dias úteis 7h–17h e nada ultrapassa os limites diários — a fila espera o próximo dia útil (reforça WHS-01/WHS-04, cuja mecânica veio na Fase 1).
+
 **Plans**: 3 plans
 **UI hint**: yes
 
 Plans:
+
 - [ ] 03-01: Cadência e scheduler — `Scheduler` tick 30s + `FOR UPDATE SKIP LOCKED` + lease + reconciliador + idempotência `(lead_id, follow_up_index)`, misfire policies por tipo (`CATCH_UP` proibido), `business-hours.ts` com feriados BR + "próximo dia útil", detecção de não-resposta (read receipts/watermark), default conservador (máx. 2 toques automáticos sem resposta → handoff)
 - [ ] 03-02: Painel de controle — `ApiHttp` (Fastify + SSE, bind `127.0.0.1`, `Host` header validado, token por request) + React localhost; R-046 completo (lista + chat + sugestões + histórico + ações rápidas + modo em tempo real + contador + janela + motivo do silêncio + fila de handoff); comando kill switch global
 - [ ] 03-03: CRM operacional e copiloto — pipeline com motivos de "Perdido", busca/filtros/tags/notas/tarefas/lembretes, histórico imutável, notas automáticas da IA, modo copiloto pós-handoff (sugere, nunca envia), confirmação/lembrete pós-agendamento; migração do doc `01-requisitos-funcionais.md` (R-004/R-005, R-058) + ADRs (R-019 revertido, dreno R-007, `isCatchupDrain` como parâmetro)
 
 ### Phase 4: Piloto, Calibração e Apuração
+
 **Goal**: Comprovar em ~30 dias de operação real no número dedicado que o sistema gera reuniões sem queimar o número, apurar os critérios de sucesso (5 reuniões/mês, 30% de qualificação/mês) e responder com dado as questões abertas do roadmap.
 **Mode**: mvp
 **Depends on**: Phase 3
 **Requirements**: OPRE-02, OPRE-03, PILO-01, PILO-02, PILO-03
 **Success Criteria** (what must be TRUE):
+
   1. O Admin opera sozinho o sistema durante o piloto: nenhum usuário adicional criado, nenhuma atribuição de leads (OPRE-02) e a lista de leads do sistema nunca aparece para a equipe — o Admin coordena manualmente quem aborda o quê e o risco ALTO de sobreposição (R-050) é controlado (OPRE-03).
   2. O fluxo completo do escopo MVP (PILO-01/R-060) roda sem intervenção do desenvolvedor: importar da API do caça-leads → Admin envia a 1ª mensagem manualmente → bot assume → handoffs nos momentos críticos → reunião agendada — com trilha de auditoria de cada decisão da IA e humana; saída de shadow mode com comparação rascunho vs. envio real.
   3. A apuração mensal mede os dois critérios — 5 reuniões agendadas/mês e 30% de taxa de qualificação/mês (PILO-02) — e a cadência é recalibrada com o dado real (tempo mediano até 1ª resposta, taxa de resposta por toque) em vez dos intervalos presumidos (PILO-03); a decisão de break-up no encerramento é tomada com o dado do piloto (questão aberta da pesquisa, FLUP-11 v2).
   4. O material de appeal de banimento (registro de origem, opt-outs, template da 1ª mensagem, frequência) e os documentos LGPD (Encarregado, canal do titular, teste de balanceamento revisto, resposta a titular < 48h) estão prontos **antes** de serem necessários. — *Critério de continuidade operacional: reforça COMP-02/COMP-03 (Fase 1) e decide FLUP-11 (v2); sem ele, os critérios R-061/R-062 não têm condições de execução segura no período.*
+
 **Plans**: 2 plans
 **UI hint**: no
 
 Plans:
+
 - [ ] 04-01: Piloto real e calibração — 30 dias no número dedicado com shadow como comparação, recalibração da cadência (1h/1d/3d/7d só fixados com dado), decisão de break-up, plano de appeal preparado antecipadamente, tensão R-059 (SIM descartável) registrada e decidida
 - [ ] 04-02: Apuração e relatório — apuração mensal R-061/R-062 em visão mínima (reaproveita o painel da Fase 3, sem analytics avançado), revisão do teste de balanceamento LGPD, relatório de guardrails (nenhuma fronteira cruzada), lições do piloto para v2 (R-016 migração oficial, multiusuário, analytics)
 
@@ -123,7 +139,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Fundação, Canal e Gate de Envio | 0/5 | Not started | - |
+| 1. Fundação, Canal e Gate de Envio | 0/5 | Planned    |  |
 | 2. IA, Handoff e Shadow Mode | 0/3 | Not started | - |
 | 3. Cadência, Operação e Painel | 0/3 | Not started | - |
 | 4. Piloto, Calibração e Apuração | 0/2 | Not started | - |

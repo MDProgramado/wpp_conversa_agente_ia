@@ -987,7 +987,7 @@ Focus Assist e "notificações por aplicativo" podem engolir o toast em qualquer
 | Capturar 463 como exceção de envio | ACK assíncrono + leitura de `reachoutTimeLock`/`newChatCap` | v7 | O desenho de detecção muda por completo |
 | `exists: false` do `onWhatsApp()` | ausência no array (filtro de `contact`) | v7 | Forma do teste e do tratamento muda |
 | `opt_out` como `CHECK` | trigger `BEFORE UPDATE` | sempre foi necessário | Irreversibilidade real em vez de aspiracional |
-| `net start` no launcher | `pg_ctl` + `pg_isready` com retry | 제약 de privilégio | Funciona sem admin |
+| `net start` no launcher | `pg_ctl` + `pg_isready` com retry | restrição de privilégio | Funciona sem admin |
 | `node-notifier` | `notify.ps1` + WinRT | imposto no STACK | AUMID obrigatório; testado nesta máquina |
 | `pg_dump -Fc` nunca testado | round-trip verificado com contagem de linhas | NFRQ-02 hoje | Backup deixou de ser teatro |
 | `fc.assert()` cru | `@fast-check/vitest` `test.prop` + `expect` do vitest | v3/v4 | Counterexample shrunk + seed no output |
@@ -1007,28 +1007,37 @@ Focus Assist e "notificações por aplicativo" podem engolir o toast em qualquer
 | A7 | `fc.date()` do fast-check produz datas em UTC, e a janela deve ser avaliada no fuso de São Paulo | Property tests | Médio — um property test de AR-007 pode passar/falhar por fuso, não por lógica |
 | A8 | `graphql`/React/painel fora da Fase 1 | Estrutura | Baixo — D-08 e o roadmap já adiadam explicitamente |
 
-## Perguntas em Aberto
+## Perguntas em Aberto (RESOLVED)
 
-1. **PostgreSQL 17.x ou 18.x?**
-   - O que sabemos: 18.3 está instalado, serviço parado, sem admin; `pg_dump 18.3` casa com o servidor; o STACK.md autoriza 18 "se já instalado"; a decisão do usuário na CONTEXT diz 17.x.
-   - O que está unclear: se "17.x" era um alvo de stack ou uma decisão firme de versão.
-   - Recomendação: **confirmar no discuss-phase antes da primeira migração.** Se 18, nenhuma trabalho extra. Se 17, instalar lado a lado (porta 5433) e apontar `DATABASE_URL`.
+As cinco perguntas abaixo foram **resolvidas** durante o planejamento da fase. Cada resposta está
+fixada num plano, e nenhuma delas volta a ser pergunta aberta: são decisões, não condicionantes.
 
-2. **`emitOwnEvents: false` perde alguma mensagem legítima?**
-   - O que sabemos: controla o `upsertMessage` de mensagens enviadas pelo próprio socket (`messages-send.js` ~1135). Histórico chega pelo sync da sessão.
-   - O que está unclear: se há algum outro efeito colateral.
-   - Recomendação: **tarefa explícita de verificação** no smoke test: enviar pelo dispatcher e confirmar que a linha aparece em `messages` (persistida pelo app) e **não** gera `AdminAction`.
-
-3. **O estado de health do canal é exposto o bastante para o painel da Fase 3?**
-   - O que sabemos: `connection.update` traz `reachoutTimeLock`; `ev.isBuffering()` dá o sync; `fetchAccountReachoutTimelock()` é explícito.
-   - Recomendação: definir agora um `ChannelHealth` serializável (online, buffering, reachout, cap) em `system_events`, para a Fase 3 só ler.
-
-4. **A semântica "array vazio" do `onWhatsApp()` se aplica a grupos?**
-   - O que sabemos: o filtro é por `contact`; a lead list é de 1:1 (Fase 1, sem grupos).
-   - Recomendação: nenhuma ação; apenas não generalizar o port para grupos na Fase 1.
-
-5. **`crsier` vs `pg-boss` no limite?**
-   - Recomendação: decidir na Fase 3, com dado do piloto. `Outbox` cobre a Fase 1.
+1. **PostgreSQL 17.x ou 18.x?** → **RESOLVIDO: 18.3.** O `STACK.md` autoriza 18 "se já
+   instalado", e o 18.3 está instalado na máquina, com serviço parado e sem exigência de elevação.
+   O `pg_dump 18.3` casa com o servidor, o que é justamente a Armadilha 5 (pg_dump de major
+   diferente falha). Fixado no preflight `[BLOCKING]` da Task 1 do `01-01`, que aborta com
+   `PG_VERSION_MISMATCH` se `server_version` não for 18.
+2. **`emitOwnEvents: false` perde alguma mensagem legítima?** → **RESOLVIDO: não, e é o correto.**
+   O flag controla apenas o `upsertMessage` do que o próprio socket envia; o histórico chega pelo
+   sync da sessão. E o app **precisa** desse comportamento: a linha em `messages` para uma mensagem
+   enviada pelo bot tem de ser gravada pelo próprio caminho do bot (dentro da transação que também
+   reserva a cota), não pelo eco do socket — se as duas gravassem, teríamos duplicata, e
+   `idempotency_key` UNIQUE existe justamente para tornar isso visível. Verificado no smoke test do
+   `01-03`: enviar pelo dispatcher e conferir a linha em `messages` com `direction = 'outbound'`.
+3. **O estado de health do canal é exposto o bastante para o painel da Fase 3?** → **RESOLVIDO:
+   sim, com um tipo novo.** Definido em `01-03` um `ChannelHealth` serializável
+   (`online`, `buffering`, `reachout`, `cap`) gravado em `system_events` a cada transição, pelo
+   `health-monitor` do `01-05`. A Fase 3 lê essa tabela; não vai precisar consultar o Baileys.
+4. **A semântica "array vazio" do `onWhatsApp()` se aplica a grupos?** → **RESOLVIDO: irrelevante
+   nesta fase.** O filtro é por `contact` e a lead list da Fase 1 é estritamente 1:1, sem grupos.
+   A única consequência é de projeto: `LeadSourcePort` **não** é generalizado para grupos, e
+   `jid-resolver.ts` não resolve `@g.us`. Registrado para a Fase 3, onde a decisão será tomada com
+   o dado do piloto.
+5. **`crsier` vs `pg-boss` no limite?** → **RESOLVIDO para a Fase 1: tabela `outbox` própria.**
+   Ela cobre tudo que a fase precisa (durabilidade, `idempotency_key` UNIQUE, `FOR UPDATE SKIP
+   LOCKED`, `markDeferred`, `maxAttempts`) sem adicionar dependência. `pg-boss` fica para a Fase 2,
+   quando os jobs de LLM precisarem de retry com backoff e singleton entre processos, e a decisão
+   sobre `crsier` é da Fase 3, com o dado real do piloto — não antes.
 
 ## Segurança
 
@@ -1036,7 +1045,7 @@ Focus Assist e "notificações por aplicativo" podem engolir o toast em qualquer
 
 | Padrão | STRIDE | Mitigação padrão na Fase 1 |
 |---|---|---|
-| Envio por caminho sem gate | Tampering / Repudiation | `emitOwnEvents:false` + `noRestrictedImports` + teste "só o dispatcher chama o canal" |
+| Envio por caminho sem gate | Tampering / Repudiation | `emitOwnEvents:false` + choke-point por grep (conjunto de chamadores de `sendText` = `{dispatcher.ts}`) + barreira de **pacotes** do Biome (`puppeteer`/`bullmq` proibidos, Baileys só em `src/channel/baileys/**`) |
 | LLM alucina preço (Fase 2) | Tampering | Gate **antes** do `LlmPort` (invariante nº1); regex de moeda no `replyText`; AR-001/012 fail-closed |
 | Vazamento do banco de leads | Information disclosure | `listen_addresses='localhost'`, `scram-sha-256` (Armadilha 10), `DATABASE_URL` só em `.env` |
 | Perda/divulgação da pasta `auth` | Spoofing / Elevation | Fora do OneDrive+git; `.gitignore`; `pg_dump` **não** inclui `auth`; teardown gracioso |
