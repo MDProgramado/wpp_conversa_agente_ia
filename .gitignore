@@ -1,0 +1,40 @@
+# Dependências
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Ambiente
+.env
+.env.local
+*.env
+
+# Build
+dist/
+build/
+*.js.map
+
+# Dados locais (sensíveis)
+sessions/
+backups/
+*.dump
+*.zip
+
+# PostgreSQL local
+pgdata/
+*.log
+
+# OpenCode / GSD (runtime)
+.opencode/skills/
+.planning/.cache/
+.planning/tmp/
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp

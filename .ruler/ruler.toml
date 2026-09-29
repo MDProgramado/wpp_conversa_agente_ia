@@ -1,0 +1,8 @@
+[skills]
+enabled = true
+
+[agents.opencode]
+skills_dir = ".opencode/skills"
+
+[merge]
+strategy = "merge"
