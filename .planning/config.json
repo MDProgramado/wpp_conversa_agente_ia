@@ -35,19 +35,19 @@
       {
         "heading": "User Stories & Acceptance Criteria",
         "enabled": true,
-        "source": "REQUIREMENTS.md ## User Stories || REQUIREMENTS.md ## Acceptance Criteria",
+        "source": "PLAN.md##User Stories || PLAN.md##Acceptance Criteria",
         "fallback": "- Acceptance criteria are covered by the linked requirements and verification evidence."
       },
       {
         "heading": "Risks & Dependencies",
         "enabled": true,
-        "source": "PLAN.md ## Risks || PLAN.md ## Dependencies",
+        "source": "PLAN.md##Risks || PLAN.md##Dependencies",
         "fallback": "- No known high-risk rollout dependencies."
       },
       {
         "heading": "Success Metrics & Release Criteria",
         "enabled": false,
-        "source": "REQUIREMENTS.md ## Definition of Done || VERIFICATION.md ## Release Criteria",
+        "source": "PLAN.md##Definition of Done || PLAN.md##Release Criteria",
         "fallback": "- Release when automated verification and required manual checks pass."
       },
       {

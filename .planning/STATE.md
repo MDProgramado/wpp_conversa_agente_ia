@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-09-29T12:22:43.491Z"
+last_updated: "2026-09-30T16:53:10.104Z"
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 5
-  completed_plans: 0
-  percent: 0
+  completed_plans: 1
+  percent: 20
 ---
 
 # Estado do Projeto
@@ -24,25 +24,25 @@ Ver: `.planning/PROJECT.md` (atualizado 2026-09-28)
 ## Posição Atual
 
 Fase: 1 de 4 (Fundação, Canal e Gate de Envio)
-Plano: 0 de 5 na fase atual
+Plano: 1 de 5 na fase atual (01-01 concluído)
 Status: Executing Phase 01
-Última atividade: 2026-09-29 — Fase 1 planejada: 5 planos (01-01…01-05), SKELETON, RESEARCH e PATTERNS; ROADMAP e STATE sincronizados
+Última atividade: 2026-09-30 — Wave 1 executada: plano 01-01 (walking skeleton) com 6/6 tasks implementadas e 9 commits. Task 6 (notificação visual) implementada mas **pendente de revalidação** — `WpnUserService` parado nesta máquina impede exibição de toast.
 
-Progresso: [░░░░░░░░░░] 0% (0 de 5 planos executados; 5 de 5 planejados)
+Progresso: [██░░░░░░░░] 20% (1 de 5 planos executados; 5 de 5 planejados)
 
 ## Métricas de Desempenho
 
 **Velocidade:**
 
-- Planos concluídos: 0
-- Duração média: —
-- Tempo total de execução: —
+- Planos concluídos: 1
+- Duração média: 150 min
+- Tempo total de execução: ~150 min
 
 **Por Fase:**
 
 | Fase | Planos | Planejados | Executados | Média/Plano |
 |------|--------|-------------|------------|-------------|
-| 1. Fundação, Canal e Gate | 5 | 5 | 0 | — |
+| 1. Fundação, Canal e Gate | 5 | 5 | 1 | 150 min |
 | 2. IA, Handoff e Shadow | 3 | 0 | 0 | — |
 | 3. Cadência, Operação e Painel | 3 | 0 | 0 | — |
 | 4. Piloto, Calibração e Apuração | 2 | 0 | 0 | — |
@@ -68,6 +68,19 @@ Decisões completas em PROJECT.md (tabela Key Decisions). Recentes que afetam o 
   - **Node 24 LTS é o alvo.** **✅ RESOLVIDO em 2026-09-29:** instalado e ativo `v24.21.0` (via `fnm`, com o diretório de instalação na `PATH` do usuário). Registrado em ADR-001 §"Registro de ambiente".
 - **`DATA_ROOT` definido: `C:\whatsapp_prospecao`** (2026-09-29, preflight do plano 01-01). Subpastas `auth\`, `backups\` e `logs\` criadas; `(Get-Item 'C:\whatsapp_prospecao').Attributes` = `Directory`, **sem** `ReparsePoint` nem `Offline` — ou seja, fora do OneDrive. A guarda `DATA_ROOT_ON_ONEDRIVE` aborta o boot se isso mudar.
 
+### Decisões do Plano 01-01 (2026-09-30, walking skeleton)
+
+- **Guard 0 (R-001) fica FORA da numeração AR-001..AR-012.** AR-001 é preço; R-001 é primeiro contato. Numerar R-001 como AR-000 inventaria uma categoria que não existe em `docs/10-anti-requisitos.md`.
+- **A ordem de avaliação do gate é invariante, não detalhe:** kill switch → Guard 0 (R-001) → AR-001..AR-011 na ordem de `docs/10-anti-requisitos.md`. A ordem mora em `src/domain/gate/guard-order.ts` e é **testada**, não documentada.
+- **`sendText` tem exatamente um chamador de produção:** `src/application/dispatcher.ts:164`. O invariante é a *ausência* de um segundo caminho, e a barreira de lint o mantém. Daqui saem os 12 anti-requisitos.
+- **Registro do AUMID é best-effort e não-fatal.** AUMID controla o *nome* do toast, não a emissão. Um registro de branding que bloqueia o alerta é risco maior que o nome genérico que ele evita — e R-013 exige que o Admin seja avisado.
+- **Som toca ANTES do toast** no `notify.ps1`: se a sessão de áudio estiver em erro, o script falharia depois de já ter emitido o toast e R-013 perderia a notificação silenciosamente.
+- **Título nunca vai para o log de notificações.** Pode carregar trecho de conversa com o lead (R-064) e o arquivo sobrevive à rotação de retenção. O log registra `title_chars` — quanto, nunca o quê.
+- **3 defeitos graves encontrados por leitura e travados em `tests/gate/regressoes.test.ts`** (nenhum era coberto por teste do plano):
+  1. **Kill switch invertido** — `coalesce(is_active) as kill_switch` ligava o botão de emergência na conta ativa, e o gate **bloqueava toda mensagem do sistema**. Era o pior possível: o produto inteiro mudo.
+  2. **AR-004 barrava todo link** — `p.kind !== "text"` tratava `link` como mídia, violando R-042.
+  3. **`blocked_attempts` perdia todo negativo** — `db.execute` com string solta deixava `$1..$3` sem bind, e nenhuma rejeição do gate ia para a trilha de auditoria (R-022).
+
 ### Todos Pendentes
 
 De `.planning/todos/pending/`:
@@ -77,8 +90,11 @@ Nenhum ainda.
 ### Bloqueios/Preocupações
 
 - ⚠️ **API do caça-leads não especificada** (schema, auth, rate limit) — bloqueia LEAD-01 na integração (não a arquitetura); decidir forma do insert antes (AR-011 exige `legal_registered_at` na criação).
-- ⚠️ **Smoke test Windows de Fase 1** — notificação (Focus Assist, ExecutionPolicy, som em RDP) e presença de `fetchAccountReachoutTimelock` no typings do pacote instalado precisam de validação empírica na máquina do Admin.
 - ⚠️ **R-059 (número único, sem redundância)** — risco dominante aceito e documentado; mitigação: shadow mode, kill switch, appeal preparado, exportação contínua do CRM.
+- 🔴 **R-013 (notificação local) — `WpnUserService` PARADO nesta máquina (2026-09-30).** A Task 6 do plano 01-01 está implementada e verificada por código, mas a **exibição** não acontece: a gravação passa (`Show()` sem erro, linha criada em `wpndatabase.db`, log `toast_sent`) e a entrega nunca ocorre (`LastNotificationAddedTime` não é atualizado). Evidência de que é do Windows e não do código: **nem o toast com AUMID nativo do PowerShell aparece, nem um balloon via `NotifyIcon`**, que nem passa pela camada WPN. Foco Assistente desligado, nenhuma política, sessão `console` local (não RDP), toggle de Notificações ligado (confirmado pelo Admin), `explorer`/`ShellExperienceHost`/`StartMenuExperienceHost`/`RuntimeBroker` todos rodando. `Start-Service WpnUserService` é recusado — é serviço *template* por usuário. `notify.ps1` está correto; o defeito é do SO. **Decisão do Admin: reiniciar o Windows e revalidar depois.** Comando de revalidação: `npm run notify -- -Title "Teste R-013" -Message "Verificacao" -Urgent`.
+  - **Consequência de projeto se o reboot não resolver:** R-013 é load-bearing (handoff, opt-out e mídia recebida dependem de o Admin *saber* que precisa agir). O **som** é o único canal já verificado como independente do WPN (`Hand.Play()` sem exceção, áudio OK) e já toca com `-Urgent`. Decisão pendente: tornar o som o sinal primário de alerta, com o toast como complemento.
+- ⚠️ **`CHANNEL_PHONE_E164` no `.env` está com o placeholder `+5511999999999`.** O número dedicado real precisa entrar **antes do pareamento QR** (Task 3 do plano 01-03). O CHECK do banco aceita o placeholder, então nada quebra até lá — mas número errado no canal é erro sem recuperação barata.
+- ⚠️ **`fetchNewChatMessageCap()` / `fetchAccountReachoutTimelock()`** — precisam ser confirmados nos typings do `@whiskeysockets/baileys@7.0.0-rc14` instalado. Sem eles, WHS-04 e LEAD-03 ficam sem implementação (ADR-001). Verificar no início do plano 01-03.
 
 ### Resolvidos em 2026-09-29 (preflight do plano 01-01, Task 1)
 
@@ -106,10 +122,11 @@ Nenhum ainda.
 
 ## Continuidade de Sessão
 
-Última sessão: 2026-09-29
-Parou em: Fase 1 planejada (5/5). Cadeia `/gsd-plan-phase 1 --auto` interrompida após o commit dos planos; finalizada nesta sessão com o commit dos refinamentos de verificação, `roadmap update-plan-progress 1` e sincronização do STATE. Nenhum plano executado.
-Próximo passo: `/gsd-execute-phase 1` (wave 1 começa por 01-01)
-Arquivo de retomada: `.planning/phases/01-funda-o-canal-e-gate-de-envio/SKELETON.md`
+Última sessão: 2026-09-30
+Parou em: Fase 1, wave 1 concluída. Plano 01-01 executado (6/6 tasks implementadas, 9 commits, `01-01-SUMMARY.md` escrito) com a **Task 6 pendente de revalidação** — o `WpnUserService` está parado na máquina e a notificação é gravada mas não exibida. Decisão do Admin: reiniciar o Windows e revalidar depois; o plano não fica bloqueado. STATE e ROADMAP sincronizados (`completed_plans: 1`, 20%).
+Próximo passo: `/gsd-execute-phase 1` (wave 2: 01-02 e 01-03, serializados — este runtime não expõe isolamento por worktree)
+Pós-reboot: revalidar com `npm run notify -- -Title "Teste R-013" -Message "Verificacao" -Urgent` e fechar a Task 6
+Arquivo de retomada: `.planning/phases/01-funda-o-canal-e-gate-de-envio/01-01-SUMMARY.md`
 
 ---
-*Atualizado: 2026-09-29*
+*Atualizado: 2026-09-30*
