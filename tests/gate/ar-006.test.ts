@@ -47,21 +47,31 @@ const moldura = (termo: string) =>
 		`${termo}`,
 	);
 
+/**
+ * Um termo e a frase que o contém. `chain` (e não um `fc.property` de dois
+ * arbitraries) porque a moldura DEPENDE do termo — passar a função direto para
+ * `property` a trataria como um arbitrário e o tipo seria `unknown`.
+ */
+const termoComMoldura = fc
+	.constantFrom(...TERMOS)
+	.chain((termo) =>
+		fc
+			.tuple(fc.constant(termo), moldura(termo))
+			.map(([t, texto]) => ({ termo: t, texto })),
+	);
+
 describe("AR-006 — revelação de automação", () => {
 	it("bloqueia o termo em qualquer caixa e com ou sem acento", () => {
 		fc.assert(
-			fc.property(
-				fc.constantFrom(...TERMOS),
-				moldura,
-				(termo, construir) => {
-					const texto = construir(termo);
-					const decisao = evaluatePolicy(validInbound({ outbound: { text: texto } }));
-					expect(decisao).toMatchObject({
-						action: "block",
-						reason: "ar006_revelacao_automacao",
-					});
-				},
-			),
+			fc.property(termoComMoldura, ({ texto }) => {
+				const decisao = evaluatePolicy(
+					validInbound({ outbound: { text: texto } }),
+				);
+				expect(decisao).toMatchObject({
+					action: "block",
+					reason: "ar006_revelacao_automacao",
+				});
+			}),
 			{ seed: 20260928, numRuns: 500 },
 		);
 	});
@@ -71,7 +81,9 @@ describe("AR-006 — revelação de automação", () => {
 		// é o bot se apresentando. Regex sem fronteira de palavra erraria aqui.
 		fc.assert(
 			fc.property(fc.constantFrom(...FRASES_LIVRES), (frase) => {
-				const decisao = evaluatePolicy(validInbound({ outbound: { text: frase } }));
+				const decisao = evaluatePolicy(
+					validInbound({ outbound: { text: frase } }),
+				);
 				expect(decisao.action).toBe("send");
 			}),
 			{ seed: 20260928, numRuns: 500 },
@@ -81,7 +93,9 @@ describe("AR-006 — revelação de automação", () => {
 	it("não barra menção a IA em contexto que não é o bot falando de si", () => {
 		// "usamos IA para Generated" é conversa de negócio normal.
 		const decisao = evaluatePolicy(
-			validInbound({ outbound: { text: "Trabalhamos com IA generativa na nossa stack." } }),
+			validInbound({
+				outbound: { text: "Trabalhamos com IA generativa na nossa stack." },
+			}),
 		);
 		expect(decisao.action).toBe("send");
 	});

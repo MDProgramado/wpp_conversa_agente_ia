@@ -17,6 +17,7 @@
  * uma configuração válida quebra o banco. Não mexer.
  */
 import { sql } from "drizzle-orm";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import {
 	boolean,
 	check,
@@ -103,7 +104,14 @@ export const leads = pgTable(
 			.default(false),
 		waValidatedAt: timestamp("wa_validated_at"),
 		waValidationState: text("wa_validation_state"),
-		duplicateOf: uuid("duplicate_of"),
+		/**
+		 * LEAD-04/T-01-10: auto-referência para o lead original. A FK é o que faz a
+		 * deduplicação ser auditável — sem ela, `duplicate_of` seria um UUID solto
+		 * que ninguém pode validar. Deliberadamente SEM `ON DELETE CASCADE` e SEM
+		 * `ON DELETE SET NULL`: nada é apagado (LEAD-04). `id` é a PK, então
+		 * `leads.id` é a coluna alvo, nunca `remoteJid`.
+		 */
+		duplicateOf: uuid("duplicate_of").references((): AnyPgColumn => leads.id),
 		/** R-028/WHS-05: nullable já na Fase 1 (hoje um usuário só) — adicionar depois é migração em base viva. */
 		responsibleUserId: uuid("responsible_user_id"),
 		createdBy: uuid("created_by"),
