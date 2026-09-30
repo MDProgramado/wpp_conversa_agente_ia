@@ -320,6 +320,22 @@ describe("invariantes de auditoria no PostgreSQL real", () => {
 		).not.toBeNull();
 		expect(erro?.codigo).toBe(P0001);
 		expect(erro?.mensagem).toContain("append-only");
+		expect(erro?.mensagem).toContain("R-043");
+	});
+
+	it("R-043: DELETE em messages é REJEITADO pelo banco", async () => {
+		const erro = await emTransacaoDescartavel(async (client) => {
+			const { messageId } = await criaFixtures(client);
+			return esperaRejeicao(client, "delete from messages where id = $1", [
+				messageId,
+			]);
+		});
+		expect(
+			erro,
+			"DELETE em messages NÃO foi rejeitado — trigger ausente",
+		).not.toBeNull();
+		expect(erro?.codigo).toBe(P0001);
+		expect(erro?.mensagem).toContain("R-043");
 	});
 
 	it("R-043: DELETE em optout_ledger é REJEITADO pelo banco", async () => {
@@ -398,6 +414,7 @@ describe("invariantes de auditoria no PostgreSQL real", () => {
 		).not.toBeNull();
 		expect(erro?.codigo).toBe(P0001);
 		expect(erro?.mensagem).toContain("opt_out");
+		expect(erro?.mensagem).toContain("R-024");
 	});
 
 	it("R-022: o INSERT do dispatcher (conversation_id, rule_reference, detail, created_at) preenche guard, reason_code e excerpt", async () => {
@@ -423,8 +440,9 @@ describe("invariantes de auditoria no PostgreSQL real", () => {
 		).toBeDefined();
 		expect(linha?.reason_code).toBe("ar001_preco");
 		expect(linha?.excerpt).toBe("citou R$ 3.500");
-		// `rule_reference` é o identificador canônico do guard (R-022/R-045); o
-		// trigger o espelha em `reason_code` e traduz o slot em `guard`.
-		expect(linha?.guard).toBe("guard-6a");
+		// `rule_reference` e `reason_code` carregam o GateReason; `guard` carrega
+		// o R/AR correspondente, que e a grafia que o relatorio de conformidade e
+		// o painel da Fase 04 citam. A traducao e mecanica: `ar001_preco` -> `AR-001`.
+		expect(linha?.guard).toBe("AR-001");
 	});
 });
