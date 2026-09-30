@@ -54,7 +54,7 @@ export interface DispatchOpts {
 	readonly now: Date;
 	/**
 	 * Recusado. Existe só para tornar a tentativa visível em tempo de compilação —
-	 * um bypass seria a.Environment não existe chave `bypassGate` aqui: passar algo
+	 * a interface não tem chave `bypassGate`: passar algo
 	 * assim é erro de tipo, e é essa a barreira.
 	 */
 	readonly bypassGate?: never;
