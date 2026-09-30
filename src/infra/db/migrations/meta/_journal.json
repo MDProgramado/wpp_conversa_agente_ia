@@ -1,27 +1,34 @@
 {
-	"version": "7",
-	"dialect": "postgresql",
-	"entries": [
-		{
-			"idx": 0,
-			"version": "7",
-			"when": 1790770561084,
-			"tag": "0000_initial",
-			"breakpoints": true
-		},
-		{
-			"idx": 1,
-			"version": "7",
-			"when": 1790776061540,
-			"tag": "0001_channel_accounts_phone_e164_unique",
-			"breakpoints": true
-		},
-		{
-			"idx": 2,
-			"version": "7",
-			"when": 1790776913620,
-			"tag": "0002_leads_duplicate_of_fk",
-			"breakpoints": true
-		}
-	]
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1790770561084,
+      "tag": "0000_initial",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790776061540,
+      "tag": "0001_channel_accounts_phone_e164_unique",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790776913620,
+      "tag": "0002_leads_duplicate_of_fk",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790788152645,
+      "tag": "0003_phase01_02_tabelas",
+      "breakpoints": true
+    }
+  ]
 }
