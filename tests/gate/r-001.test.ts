@@ -8,7 +8,11 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { evaluatePolicy } from "../../src/domain/gate/evaluate-policy.js";
-import { DIA_UTIL_DENTRO_DA_JANELA, TEXTO_NEUTRO, validInbound } from "./fixtures.js";
+import {
+	DIA_UTIL_DENTRO_DA_JANELA,
+	TEXTO_NEUTRO,
+	validInbound,
+} from "./fixtures.js";
 
 /** Textos que não devem disparar nenhum AR de conteúdo. */
 const textosInocuos = [
@@ -36,7 +40,9 @@ describe("R-001 — primeiro contato humano", () => {
 							context: {
 								killSwitch,
 								sentToday,
-								now: foraDaJanela ? FORA_DA_JANELA : new Date(DIA_UTIL_DENTRO_DA_JANELA),
+								now: foraDaJanela
+									? FORA_DA_JANELA
+									: new Date(DIA_UTIL_DENTRO_DA_JANELA),
 							},
 						}),
 					);
@@ -67,7 +73,9 @@ describe("R-001 — primeiro contato humano", () => {
 	it("o texto neutro do default não dispara nenhum AR de conteúdo", () => {
 		// Trava o fixture: se alguém inserir "preço" ou "IA" em TEXTO_NEUTRO, este
 		// teste avisa antes de os outros começarem a passar por acidente.
-		const decisao = evaluatePolicy(validInbound({ outbound: { text: TEXTO_NEUTRO } }));
+		const decisao = evaluatePolicy(
+			validInbound({ outbound: { text: TEXTO_NEUTRO } }),
+		);
 		expect(decisao.action).toBe("send");
 	});
 });

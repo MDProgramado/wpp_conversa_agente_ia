@@ -26,14 +26,23 @@ describe("AR-007 — janela operacional", () => {
 				fc.integer({ min: 0, max: 23 }), // hora em São Paulo
 				fc.integer({ min: 0, max: 59 }), // minuto
 				(ano, mes, dia, hora, minuto) => {
-					const agora = instanteEmZona("America/Sao_Paulo", ano, mes, dia, hora, minuto);
+					const agora = instanteEmZona(
+						"America/Sao_Paulo",
+						ano,
+						mes,
+						dia,
+						hora,
+						minuto,
+					);
 
 					// Esperado calculado dos componentes, não da implementação.
 					const fimDeSemana = EH_FIM_DE_SEMANA(ano, mes, dia);
 					const dentroDaJanela = hora >= JANELA_INICIO && hora < JANELA_FIM;
 					const deveriaBloquear = fimDeSemana || !dentroDaJanela;
 
-					const decisao = evaluatePolicy(validInbound({ context: { now: agora } }));
+					const decisao = evaluatePolicy(
+						validInbound({ context: { now: agora } }),
+					);
 
 					if (deveriaBloquear) {
 						expect(decisao).toMatchObject({
@@ -43,7 +52,9 @@ describe("AR-007 — janela operacional", () => {
 					} else {
 						// Dentro da janela a regra NÃO é a que decide: a decisão pode ser
 						// `send` ou o bloqueio de outra regra, mas nunca ar007.
-						expect(decisao).not.toMatchObject({ reason: "ar007_fora_da_janela" });
+						expect(decisao).not.toMatchObject({
+							reason: "ar007_fora_da_janela",
+						});
 					}
 				},
 			),
@@ -81,7 +92,8 @@ describe("AR-007 — janela operacional", () => {
 		for (const [hora, esperado] of casos) {
 			const agora = instanteEmZona("America/Sao_Paulo", 2026, 9, 29, hora, 0);
 			const decisao = evaluatePolicy(validInbound({ context: { now: agora } }));
-			const barrou = decisao.action === "block" && decisao.reason === "ar007_fora_da_janela";
+			const barrou =
+				decisao.action === "block" && decisao.reason === "ar007_fora_da_janela";
 			expect(barrou, `${hora}h`).toBe(!esperado);
 		}
 	});

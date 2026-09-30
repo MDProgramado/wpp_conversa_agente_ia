@@ -90,13 +90,24 @@ describe("AR-006 — revelação de automação", () => {
 		);
 	});
 
-	it("não barra menção a IA em contexto que não é o bot falando de si", () => {
-		// "usamos IA para Generated" é conversa de negócio normal.
+	it("bloqueia menção a IA como tecnologia, porque o gate é fail-closed", () => {
+		// "Trabalhamos com IA generativa" é conversa de negócio normal e, com um
+		// detector de contexto, PASSARIA. Não existe detector de contexto: o gate não
+		// distingue "sou uma IA" de "usamos IA na stack", e errar para o lado de
+		// enviar é exatamente o que D-11 proíbe. Quem separa os dois casos é o prompt
+		// (ADR-012) e, no pior caso, o handoff humano.
+		//
+		// Este teste existe para fixar a decisão: se alguém "melhorar" o guard com
+		// heurística de contexto achando que reduz falso positivo, está
+		// reintroduzindo a chance de revelação de automação.
 		const decisao = evaluatePolicy(
 			validInbound({
 				outbound: { text: "Trabalhamos com IA generativa na nossa stack." },
 			}),
 		);
-		expect(decisao.action).toBe("send");
+		expect(decisao).toMatchObject({
+			action: "block",
+			reason: "ar006_revelacao_automacao",
+		});
 	});
 });

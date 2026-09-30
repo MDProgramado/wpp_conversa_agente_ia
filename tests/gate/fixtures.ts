@@ -7,8 +7,9 @@
  * ou o default. Por isso o default é um estado em que tudo liberaria, e o que está
  * sob teste é a única coisa quebrada.
  */
-import type { OutboundPart } from "../../src/domain/ports/ChannelPort.js";
+
 import type { GateInput } from "../../src/domain/gate/types.js";
+import type { OutboundPart } from "../../src/domain/ports/ChannelPort.js";
 
 export const TZ = "America/Sao_Paulo";
 
@@ -74,7 +75,14 @@ export const instanteEmZona = (
 	const alvo = Date.UTC(ano, mes - 1, dia, hora, minuto, 0);
 	const primeira = new Date(alvo);
 	const p = partesEm(primeira, tz);
-	const comoUtc = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second);
+	const comoUtc = Date.UTC(
+		p.year,
+		p.month - 1,
+		p.day,
+		p.hour,
+		p.minute,
+		p.second,
+	);
 	return new Date(alvo - (comoUtc - alvo));
 };
 
@@ -82,7 +90,11 @@ export const instanteEmZona = (
 export const diaDaSemanaDe = (ano: number, mes: number, dia: number): number =>
 	new Date(Date.UTC(ano, mes - 1, dia)).getUTCDay();
 
-export const EH_FIM_DE_SEMANA = (ano: number, mes: number, dia: number): boolean => {
+export const EH_FIM_DE_SEMANA = (
+	ano: number,
+	mes: number,
+	dia: number,
+): boolean => {
 	const dow = diaDaSemanaDe(ano, mes, dia);
 	return dow === 0 || dow === 6;
 };
@@ -99,7 +111,9 @@ export type GateInputOverrides = {
 	context?: Partial<GateInput["context"]>;
 };
 
-export const validInbound = (overrides: GateInputOverrides = {}): GateInput => ({
+export const validInbound = (
+	overrides: GateInputOverrides = {},
+): GateInput => ({
 	lead: {
 		id: "11111111-1111-4111-8111-111111111111",
 		// Telefone PLACEHOLDER de fixture: nunca o número real do Admin (R-064).
@@ -108,9 +122,17 @@ export const validInbound = (overrides: GateInputOverrides = {}): GateInput => (
 		originSource: "cacaleads",
 		legalBasis: "legitimo_interesse",
 		purpose: "prospecao_b2b_servicos_digitais",
-		// Passado, e não `null`: AR-011 exige registro, e um fixture sem registro
-		// bloquearia por AR-011 em vez da regra sob teste.
-		legalRegisteredAt: "2026-09-01T12:00:00.000Z",
+		/**
+		 * Passado, e não `null`: AR-011 exige registro, e um fixture sem registro
+		 * bloquearia por AR-011 em vez da regra sob teste.
+		 *
+		 * 2025-01-01, e não 2026-09-01 de propósito. AR-011 barra também registro
+		 * **no futuro**, então um `legalRegisteredAt` de setembro impediria qualquer
+		 * property test que gere instantes de janeiro de 2026 — e o sintoma seria
+		 * um `ar011_base_legal` num teste de AR-007, com a falha parecendo estar no
+		 * guard errado. A data é anterior a todo instante que os testes geram.
+		 */
+		legalRegisteredAt: "2025-01-01T12:00:00.000Z",
 		firstContactByHuman: true,
 		waValidationState: "valid",
 		...overrides.lead,
