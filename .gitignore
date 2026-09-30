@@ -1,40 +1,22 @@
-# Dependências
 node_modules/
-__pycache__/
-*.pyc
-.venv/
-venv/
-
-# Ambiente
-.env
-.env.local
-*.env
-
-# Build
 dist/
-build/
-*.js.map
-
-# Dados locais (sensíveis)
-sessions/
-backups/
-*.dump
-*.zip
-
-# PostgreSQL local
-pgdata/
 *.log
-
-# OpenCode / GSD (runtime)
+logs/
+*.dump
+# COMP-05: a pasta auth E a sessao. Perder/levar = "dispositivo novo" = sinal de banimento.
+auth/
+DATA_ROOT/
+whatsapp_prospecao/
+# Segredos: .env e variantes ficam fora, mas o exemplo precisa entrar.
+.env
+.env.*
+!.env.example
+config.local.json
+.ruler/cache/
+# .opencode/skills/ e a DISTRIBUICAO do Ruler (regeneravel com `npx ruler apply`).
+# A fonte de verdade versionada e .ruler/skills/ — versionar os dois duplica as skills
+# e faz a copia distribuida divergir silenciosamente da fonte.
 .opencode/skills/
-.planning/.cache/
-.planning/tmp/
 
-# Sistema
-.DS_Store
-Thumbs.db
-
-# IDE
-.vscode/
-.idea/
-*.swp
+# NAO ignorar src/infra/db/migrations/ — as migrations .sql e o meta/ sao
+# versionados (R-031 exige script/migracao auditavel).

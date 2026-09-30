@@ -1,0 +1,60 @@
+{
+	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+	"files": {
+		"includes": ["**", "!**/node_modules", "!**/.planning", "!**/opencode.json"]
+	},
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"preset": "recommended",
+			"style": {
+				"noRestrictedImports": {
+					"level": "error",
+					"options": {
+						"paths": {
+							"@whiskeysockets/baileys": "Importe o canal so via src/domain/ports/ChannelPort.ts e src/channel/baileys/. AR-002/CONV-11.",
+							"puppeteer": "Proibido (Chromium + AV false positives).",
+							"whatsapp-web.js": "Proibido (Chromium).",
+							"venom-bot": "Proibido (Chromium, sem manutencao desde 2024).",
+							"@wppconnect-team/wppconnect": "Proibido (Chromium + LGPL).",
+							"bullmq": "Proibido: exige Redis (4o servico, viola R-044/INTR-01).",
+							"ioredis": "Proibido: exige Redis (viola R-044/INTR-01).",
+							"@sentry/node": "Proibido: viola operacao local e exfiltra dado LGPD (R-064).",
+							"langchain": "Proibido: move controle de fluxo para o modelo (contradiz R-009).",
+							"node-notifier": "Proibido: obsoleto, sem AppUserModelID. Use scripts/notify.ps1 (D-07).",
+							"better-sqlite3": "Proibido: R-031 exige PostgreSQL."
+						}
+					}
+				}
+			}
+		}
+	},
+	"overrides": [
+		{
+			"includes": ["src/channel/baileys/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"paths": {
+									"puppeteer": "Proibido (Chromium + AV false positives).",
+									"whatsapp-web.js": "Proibido (Chromium).",
+									"venom-bot": "Proibido (Chromium, sem manutencao desde 2024).",
+									"@wppconnect-team/wppconnect": "Proibido (Chromium + LGPL).",
+									"bullmq": "Proibido: exige Redis (4o servico, viola R-044/INTR-01).",
+									"ioredis": "Proibido: exige Redis (viola R-044/INTR-01).",
+									"@sentry/node": "Proibido: viola operacao local e exfiltra dado LGPD (R-064).",
+									"langchain": "Proibido: move controle de fluxo para o modelo (contradiz R-009).",
+									"node-notifier": "Proibido: obsoleto, sem AppUserModelID. Use scripts/notify.ps1 (D-07).",
+									"better-sqlite3": "Proibido: R-031 exige PostgreSQL."
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	]
+}

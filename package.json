@@ -1,0 +1,44 @@
+{
+	"name": "whatsapp-prospecao",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"description": "Automacao local de conversas no WhatsApp para prospeccao B2B (Fase 01: fundacao, canal e gate de envio).",
+	"engines": {
+		"node": ">=24.0.0"
+	},
+	"scripts": {
+		"dev": "tsx src/index.ts",
+		"start": "npm run dev",
+		"typecheck": "tsc --noEmit",
+		"build": "tsc --noEmit",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"lint": "biome check .",
+		"format": "biome format --write .",
+		"lint:verify": "node scripts/lint-verify-chains.mjs .planning/phases/01-funda-o-canal-e-gate-de-envio",
+		"db:generate": "drizzle-kit generate",
+		"backup": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/backup.ps1",
+		"notify": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/notify.ps1"
+	},
+	"dependencies": {
+		"@types/node": "24.19.0",
+		"@whiskeysockets/baileys": "7.0.0-rc14",
+		"croner": "10.0.1",
+		"drizzle-orm": "0.45.3",
+		"p-queue": "9.3.3",
+		"pg": "8.23.0",
+		"pino": "10.3.1",
+		"zod": "4.6.5"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.5.14",
+		"@fast-check/vitest": "0.5.0",
+		"@types/pg": "8.23.1",
+		"drizzle-kit": "0.31.11",
+		"fast-check": "4.10.2",
+		"tsx": "4.23.15",
+		"typescript": "7.0.2",
+		"vitest": "5.0.2"
+	}
+}
