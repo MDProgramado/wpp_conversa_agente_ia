@@ -1,0 +1,1 @@
+ALTER TABLE "channel_accounts" ADD CONSTRAINT "channel_accounts_phone_e164_unique" UNIQUE("phone_e164");

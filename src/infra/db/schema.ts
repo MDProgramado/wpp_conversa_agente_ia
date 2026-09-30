@@ -53,7 +53,14 @@ export const channelAccounts = pgTable(
 	"channel_accounts",
 	{
 		id: uuid("id").primaryKey().defaultRandom(),
-		phoneE164: text("phone_e164").notNull(),
+		/**
+		 * E.164 do número dedicado. `unique` NÃO é cosmético: o boot faz
+		 * `insert ... on conflict do nothing` e só a unicidade faz esse conflito
+		 * acontecer. Sem ela o `do nothing` não tem onde agir e cada boot acrescentaria
+		 * uma linha — e o número dedicado do projeto é exatamente um. Ver
+		 * `.planning/phases/01-funda-o-canal-e-gate-de-envio/01-01-PLAN.md` Task 4, passo (d).
+		 */
+		phoneE164: text("phone_e164").notNull().unique(),
 		displayName: text("display_name"),
 		isActive: boolean("is_active").notNull().default(true),
 		createdAt: timestamp("created_at", { withTimezone: true })
