@@ -53,7 +53,7 @@ O sintetizador propôs 4 fases (Fundação+Canal+Gate ⮑ IA+Handoff+Shadow ⮑ 
 
 Plans:
 
-- [ ] 01-01-PLAN.md — **Walking Skeleton** (wave 1, autonomous: false) — preflight `[BLOCKING]` (Node 24 LTS, PG 18.3, `DATA_ROOT` fora do OneDrive) + correção do pin em `AGENTS.md` + ADR-001; scaffold com pins exatos e barreira de lint D-06; 6 tabelas + `0000_initial.sql` aplicada 2× (idempotente); `launch.cmd` sobe tudo sem elevação; gate puro com Guard 0 + 7 guardas AR (AR-001, AR-003, AR-004, AR-006, AR-007, AR-008, AR-011) + kill switch + `dispatcher` choke-point; checkpoint do toast do Windows
+- [x] 01-01-PLAN.md — **Walking Skeleton** (wave 1, autonomous: false) — preflight `[BLOCKING]` (Node 24 LTS, PG 18.3, `DATA_ROOT` fora do OneDrive) + correção do pin em `AGENTS.md` + ADR-001; scaffold com pins exatos e barreira de lint D-06; 6 tabelas + `0000_initial.sql` aplicada 2× (idempotente); `launch.cmd` sobe tudo sem elevação; gate puro com Guard 0 + 7 guardas AR (AR-001, AR-003, AR-004, AR-006, AR-007, AR-008, AR-011) + kill switch + `dispatcher` choke-point; checkpoint do toast do Windows
 - [ ] 01-02-PLAN.md — **Fundação de dados e compliance** (wave 2, autonomous: false) — 7 tabelas restantes + 3 colunas de authorship nullable (R-028); `0001_guards_and_audit.sql` com triggers de append-only e de irreversibilidade de `opt_out`; checkpoint de higiene do PostgreSQL (`listen_addresses = localhost`); dossiê LGPD (encarregado, balanceamento, canal do titular, retenção) + ADR-002/003
 - [ ] 01-03-PLAN.md — **Canal e ingestão** (wave 2, autonomous: false) — `session.ts` com detecção de `CREDS_INVALID` (auth corrompido aborta em vez de degradar), `capabilities.ts` com `fetchNewChatMessageCap`/`fetchAccountReachoutTimelock`, `jid-resolver.ts` LID↔PN, `signals.ts` com 463 sem retry, `adapter.ts` sendText-only; `inbound-handler` marcando `first_contact_by_human` **só** por `fromMe` do número dedicado; `lead-importer` gravando origem/base legal/finalidade na mesma transação e nunca reativando opt-out; checkpoint de pareamento real do número
 - [ ] 01-04-PLAN.md — **Gate de envio: os 12 anti-requisitos** (wave 3, autonomous: true) — 5 guardas restantes (AR-002, AR-005, AR-009, AR-010, AR-012) + `lead-number-invalid` (R-019/LEAD-03) + 2 arquivos de padrões; `evaluatePolicy` com os **15** invariantes em ordem fixa exportada (`GUARD_ORDER`) e `AR_MAP` de 18 entradas; `outbox` durável com `FOR UPDATE SKIP LOCKED` e cota na transação do branch `send` do `dispatch` (choke-point único de `sendText`); 12 property tests de AR + teste de ordem + teste de choke-point por grep + teste de revalidação do worker
@@ -139,7 +139,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Fundação, Canal e Gate de Envio | 0/5 | Planned    |  |
+| 1. Fundação, Canal e Gate de Envio | 1/5 | In Progress|  |
 | 2. IA, Handoff e Shadow Mode | 0/3 | Not started | - |
 | 3. Cadência, Operação e Painel | 0/3 | Not started | - |
 | 4. Piloto, Calibração e Apuração | 0/2 | Not started | - |
