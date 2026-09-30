@@ -21,6 +21,7 @@
  * 4. Se `block`: grava em `blocked_attempts` e **retorna sem enviar**.
  * 5. Só então `sendText`.
  */
+import { sql } from "drizzle-orm";
 import { evaluatePolicy } from "../domain/gate/evaluate-policy.js";
 import type { ChannelPort } from "../domain/ports/ChannelPort.js";
 import type { Db } from "../infra/db/client.js";
@@ -128,11 +129,13 @@ export const dispatch = async (
 	if (decisao.action === "block") {
 		// (4) negativo gravado. `blocked_attempts` nasce no 01-02, então a gravação
 		// é tolerante a inexistência — e uma falha aqui NUNCA vira permissiva.
+		// Os parâmetros vão pelo `sql` do drizzle (bind, nunca concatenação): um
+		// `db.execute` com string solta deixaria $1..$3 sem valor.
 		try {
-			await db.execute(
-				`insert into blocked_attempts (conversation_id, rule_reference, detail, created_at)
-				 values ($1, $2, $3, now())`,
-			);
+			await db.execute(sql`
+				insert into blocked_attempts (conversation_id, rule_reference, detail, created_at)
+				values (${conversationId}, ${decisao.reason}, ${decisao.detail}, now())
+			`);
 		} catch (erro) {
 			logger.error(
 				{

@@ -30,11 +30,18 @@ interface SnapshotRow {
 	// registra o bloqueio; o 01-04 consome este sinal no guard `ar-009.ts`.
 	pending_media_block: boolean;
 	/**
-	 * O kill switch é lido de `channel_accounts.is_active`: conta inativa é kill
+	 * O kill switch é lido de `channel_accounts.is_active`: conta INATIVA é kill
 	 * switch ligado. Não existe coluna `kill_switch` — o botão de emergência do
 	 * painel da Fase 04 desativa a conta, e o gate precisa do mesmo sinal.
-	 * `coalesce(..., false)` porque um `LEFT JOIN` sem conta precisa devolver
-	 * `false` (o snapshot 01-03 já garante a conta).
+	 *
+	 * A inversão acontece no SQL (`not coalesce(...)`) e não no TypeScript porque
+	 * o nome da coluna e o nome do campo precisam concordar: `kill_switch` aqui
+	 * significa "envio proibido", e `is_active = true` significa "envio
+	 * permitido". Sem o `not`, uma conta ativa — o caso normal — devolveria
+	 * `kill_switch = true` e o gate bloquearia toda mensagem do sistema.
+	 * `coalesce(..., false)` antes do `not` porque um `LEFT JOIN` sem conta
+	 * precisa devolver kill switch desligado (o snapshot 01-03 já garante a
+	 * conta, mas `null` não pode virar bloqueio por acidente).
 	 */
 	kill_switch: boolean;
 }
@@ -137,7 +144,7 @@ export const loadGateSnapshot = async (
 			c.engagement_mode,
 			c.handoff_active,
 			c.pending_media_block,
-			coalesce(a.is_active, false) as kill_switch
+			not coalesce(a.is_active, false) as kill_switch
 		from ${conversations} c
 		left join ${leads} l on l.id = c.lead_id
 		left join ${channelAccounts} a on a.id = c.channel_account_id

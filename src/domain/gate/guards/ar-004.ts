@@ -10,9 +10,12 @@ import type { GateInput } from "../types.js";
  *
  * Duas checagens, porque "mídia" tem duas portas:
  *
- * (a) **estrutural** — qualquer `part` que não seja `text`. O `OutboundPart` é uma
- *     união fechada e `link` é a única variação legítima (R-042), então isto não
- *     é regex: não há termo a errar.
+ * (a) **estrutural** — qualquer `part` que não seja `text` nem `link`. O
+ *     `OutboundPart` é uma união fechada de `text | link`, então na prática isto
+ *     nunca dispara: é a rede de segurança para quando a união ganhar um
+ *     `image`/`audio`/`document` no futuro. `link` NÃO é bloqueado aqui —
+ *     texto e links são explicitamente permitidos (R-042) e o gate precisa
+ *     barrar mídia, não a hyperlink.
  * (b) **de conteúdo** — o texto nomeia mídia, **ou** a URL do link termina em
  *     extensão de mídia. A segunda metade é o que barra um PDF "disfarçado" de
  *     link normal, que passaria pela checagem (a) e pelo `text` neutro.
@@ -20,7 +23,9 @@ import type { GateInput } from "../types.js";
 export const evaluate = (input: GateInput) => {
 	const partes = input.outbound.parts;
 
-	const parteNaoTextual = partes.find((p) => p.kind !== "text");
+	const parteNaoTextual = partes.find(
+		(p) => p.kind !== "text" && p.kind !== "link",
+	);
 	if (parteNaoTextual) return "ar004_midia_saida" as const;
 
 	// (b1) o texto nomeia um arquivo de mídia

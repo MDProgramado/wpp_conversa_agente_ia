@@ -77,14 +77,14 @@ export const primeiroBloqueio = (input: GateInput): Bloqueio | null => {
  * `messageId` é devolvido como string vazia porque o gate não tem acesso ao
  * registro persistido — o dispatcher o preenche com o id que acabou de gravar.
  */
-export const evaluatePolicy = (input: GateInput) => {
+export function evaluatePolicy(input: GateInput) {
 	const bloqueio = primeiroBloqueio(input);
 	const checkedAt = input.context.now.toISOString();
 	if (bloqueio) {
 		return { action: "block" as const, ...bloqueio, checkedAt };
 	}
 	return { action: "send" as const, messageId: "", checkedAt };
-};
+}
 
 export type { Guard } from "./guard.js";
 export { GUARD_ORDER, REASONS_PENDENTES_01_04 } from "./guard-order.js";
