@@ -30,6 +30,21 @@ Sistema local de automação de conversas no WhatsApp para prospecção B2B e ve
 9. **NUNCA** enviar mensagem após handoff acionado, até o usuário assumir (R-066).
 10. **SEMPRE** registrar origem do lead, base legal e finalidade (LGPD, R-064).
 
+## Regras de edição de arquivos críticos
+
+### postgresql.conf
+NUNCA editar com Set-Content, Out-File ou > no PowerShell — adiciona BOM UTF-8 e o PostgreSQL recusa subir.
+Use:
+- Notepad ou VSCode (preservam encoding)
+- [System.IO.File]::WriteAllText(, , (New-Object System.Text.UTF8Encoding False))
+
+### Qualquer arquivo de configuração do PostgreSQL
+Verificar BOM antes de reiniciar o serviço:
+`powershell
+([System.IO.File]::ReadAllBytes()[0..2] | ForEach-Object { \'{0:X2}\' -f  }) -join \' \'
+`
+Se retornar EF BB BF, o arquivo está corrompido.
+
 ## Comandos
 - `npm run dev` — desenvolvimento
 - `npm run build` — build
